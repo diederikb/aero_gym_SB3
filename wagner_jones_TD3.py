@@ -13,8 +13,8 @@ import custom_callbacks
 import h_ddot_generators
 
 # Case root name (for logging/saving)
-case_name = "TD3_reward_type_3"
-# Directory where to save the model
+case_name = "TD3_reward_type_3_saved"
+# Directory where to save the model if tensorboard is not used
 saved_model_dir = "saved_models"
 
 # Time parameters
@@ -54,12 +54,17 @@ model = TD3(
     train_freq=(1,"episode"),
     tensorboard_log="/u/home/b/beckers/project-sofia/unsteady_aero_RL/logs/" + case_name)
 model.learn(total_timesteps=int(3e5), callback=callback_list)
+print("learning finished")
 
 # Create datetime string to include in the name of the saved model
 dt = datetime.now()
 dt_str = dt.strftime("%m_%d_%y_%H_%M")
 
 # Save model
-Path(saved_model_dir).mkdir(parents=True,exist_ok=True)
-saved_model_path = os.path.join(saved_model_dir, case_name + "_" + dt_str + "_" + str(model._total_timesteps))
+loggerdir = model.logger.get_dir()
+if loggerdir is None:
+    Path(saved_model_dir).mkdir(parents=True,exist_ok=True)
+    saved_model_path = os.path.join(saved_model_dir, case_name + "_" + dt_str + "_" + str(model._total_timesteps))
+else:
+    saved_model_path = os.path.join(loggerdir, "saved_model")
 model.save(saved_model_path)
