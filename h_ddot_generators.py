@@ -2,6 +2,7 @@
 
 from aero_gym.envs.wagner_jones import WagnerJonesEnv
 import numpy as np
+import math
 
 def dstep_profile(t, delta_t, start_index, amplitude):
     h_ddot = np.zeros(len(t))
@@ -35,12 +36,10 @@ def random_steps_ramps(env: WagnerJonesEnv):
         
     return h_ddot
 
-def random_fourier_series(env: WagnerJonesEnv):
+def random_fourier_series(env: WagnerJonesEnv, N=80, T=100):
     t = np.linspace(0, env.t_max, int(env.t_max / env.delta_t) + 1)
-    N = 20
-    T = 100
     A = env.np_random.normal(0, 1, N)
 
     s = 0.0
     s += 0.01*sum(np.sin(2*math.pi/T*n*t)*A[n]/n for n in range(1, N))
-    return s.astype(np.float32)
+    return s
