@@ -58,7 +58,7 @@ class HParamCallback(BaseCallback):
         return True
 
 class FigureRecorderCallback(BaseCallback):
-    def __init__(self, eval_env: gym.Env, log_freq: int, n_eval_episodes: int = 1, deterministic: bool = True):
+    def __init__(self, eval_env: gym.Env, log_freq: int, n_eval_episodes: int = 1, deterministic: bool = True, fig_name: str = "trajectory/figure"):
         """
         Records a figure of an agent's trajectory traversing ``eval_env`` and logs it to TensorBoard
 
@@ -73,6 +73,7 @@ class FigureRecorderCallback(BaseCallback):
         self._deterministic = deterministic
         self._log_freq = log_freq
         self._n_calls = 0
+        self._fig_name = fig_name
         
     def _on_step(self) -> bool:
         return True
@@ -209,7 +210,7 @@ class FigureRecorderCallback(BaseCallback):
                 ax.set_xlim([0.0,t_max])
     
             self.logger.record(
-                "trajectory/figure", 
+                self._fig_name, 
                 Figure(figure, close=True), 
                 exclude=("stdout", "log", "json", "csv")
             )
