@@ -2,6 +2,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 
+parser.add_argument("root_dir", type = str, help="root directory for logging")
 parser.add_argument("algorithm", type=str, help="learning algorithm")
 parser.add_argument("case_name", type=str, help="case name")
 parser.add_argument("env_name", type=str, help="gym environment")
@@ -15,6 +16,7 @@ parser.add_argument("--sensor_x_min", type=float, default=-0.5, help="max x-posi
 parser.add_argument("--num_sensors", type=int, default=0, help="number of pressure sensors (default=0)")
 parser.add_argument('--include_sensor_end_positions', dest='include_end_sensors', default=False, action='store_true')
 parser.add_argument("--stacked_frames", type=int, default=1, help="number of frames used in FrameStack wrapper (default=1, i.e. no wrapper)")
+parser.add_argument("--net_arch", type=str, default=None, help="network architecture (default depends on the algorithm used)")
 args = parser.parse_args()
 print(args)
 
@@ -30,7 +32,7 @@ from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.utils import configure_logger
 import custom_callbacks
 import h_ddot_generators
-
+from os.path import join
 
 sensor_positions = np.linspace(
         args.sensor_x_min,
@@ -41,11 +43,14 @@ sensor_positions = np.linspace(
 if not args.include_end_sensors:
     sensor_positions = sensor_positions[1:-1]
 
+if args.net_arch is None:
+    policy_kwargs = dict()
+else:
+    net_arch = [int(l) for l in args.net_arch.split(',')]
+    policy_kwargs = dict(net_arch=net_arch)
 
-# Case root name (for logging/saving)
-case_name = args.algorithm + "_partial_observability_with_lift/" + args.case_name + "_" + str(args.stacked_frames)
-# Directory where to save the model if tensorboard is not used
-saved_model_dir = "saved_models"
+# Case directory (for logging/saving)
+case_dir = join(args.root_dir, args.algorithm + "_" + args.case_name + "_" + str(args.stacked_frames))
 
 # Time parameters
 t_max = 20
@@ -97,26 +102,28 @@ eval_env = deepcopy(env)
 
 logger = configure_logger(
     verbose=True,
-    tensorboard_log="/u/home/b/beckers/project-sofia/unsteady_aero_RL/logs/" + case_name,
+    tensorboard_log=case_dir,
     tb_log_name=args.algorithm)
 loggerdir = logger.get_dir()
 
 if args.algorithm == "DQN":
     model = DQN(
-        "MlpPolicy", 
+        "MlpPolicy",
         env, 
-        exploration_fraction=0.1, 
+        policy_kwargs=policy_kwargs,
+        exploration_fraction=0.25, 
         verbose=1,
         batch_size=128,
-        buffer_size=20000,
+        buffer_size=1_000_000,
         learning_starts=10000)
 else:
     model = TD3(
         "MlpPolicy", 
         env, 
+        policy_kwargs=policy_kwargs,
         verbose=1,
         batch_size=256,
-        buffer_size=300_000,
+        buffer_size=1_000_000,
         learning_starts=10_000,
         gamma=0.98,
         action_noise=NormalActionNoise(mean=np.zeros(1,dtype=np.float32),sigma=0.1*np.ones(1,dtype=np.float32)),
@@ -140,5 +147,5 @@ eval_callback = EvalCallback(
     )
 # callback_list = CallbackList([figure_recorder, custom_callbacks.HParamCallback(), eval_callback])
 callback_list = CallbackList([custom_callbacks.HParamCallback(), eval_callback])
-model.learn(total_timesteps=int(5e5), callback=callback_list)
+model.learn(total_timesteps=int(7.5e5), callback=callback_list)
 print("learning finished")
