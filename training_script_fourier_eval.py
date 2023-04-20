@@ -101,6 +101,7 @@ print(env.observation_space.shape)
 
 # Environment to evaluate policy (used in figure_recoder)
 eval_env = deepcopy(env)
+eval_env.h_ddot_generator = h_ddot_generators.random_fourier_series
 
 logger = configure_logger(
     verbose=True,
