@@ -19,7 +19,10 @@ timesteps_list = []
 
 for run in [item for item in diritems if os.path.isdir(os.path.join(args.parent_dir, item))]:
     path = os.path.join(args.parent_dir,run,"evaluations.npz")
-    data = np.load(path)
+    try:
+        data = np.load(path)
+    except:
+        continue
     
     print(path)
     
@@ -33,10 +36,10 @@ for run in [item for item in diritems if os.path.isdir(os.path.join(args.parent_
     # Don't append if timesteps don't agree
     if len(timesteps_list) > 1 and len(eval_timesteps) != len(timesteps_list[0]):
         print("length eval_timesteps (" + str(len(eval_timesteps)) + ") for " + run + " does not match length timesteps_list[0] (" + str(len(timesteps_list[0])) + ")")
-        break
+        continue
     elif len(timesteps_list) > 1 and not np.all(np.equal(eval_timesteps,timesteps_list[0])):
         print("eval_timesteps (len=" + str(len(eval_timesteps)) + ") for " + run + " does not match timesteps_list[0] (len=" + str(len(timesteps_list[0])) + ")")
-        break
+        continue
     
     mean_reward_list.append(eval_mean_reward)
     std_reward_list.append(eval_std_reward)
@@ -62,24 +65,26 @@ std_eval_mean_reward = moving_average(std_eval_mean_reward, window_size)
 lower_eval_mean_reward = mean_eval_mean_reward - std_eval_mean_reward
 upper_eval_mean_reward = mean_eval_mean_reward + std_eval_mean_reward
 
+case_name = os.path.basename(os.path.normpath(args.parent_dir))
+
 np.savetxt(
-    os.path.join(args.parent_dir,"eval_mean_reward_mean.txt"),
-    (
+    os.path.join(args.parent_dir, case_name + "_eval_mean_reward_mean.txt"),
+    np.c_[
         timesteps_list[0][window_size-1:],
         mean_eval_mean_reward,
-    )
+    ]
 )
 np.savetxt(
-    os.path.join(args.parent_dir,"eval_mean_reward_mean_plus_std.txt"),
-    (
+    os.path.join(args.parent_dir, case_name + "_eval_mean_reward_mean_plus_std.txt"),
+    np.c_[
         timesteps_list[0][window_size-1:],
         upper_eval_mean_reward
-    )
+    ]
 )
 np.savetxt(
-    os.path.join(args.parent_dir,"eval_mean_reward_mean_minus_std.txt"),
-    (
+    os.path.join(args.parent_dir, case_name + "_eval_mean_reward_mean_minus_std.txt"),
+    np.c_[
         timesteps_list[0][window_size-1:],
         lower_eval_mean_reward,
-    )
+    ]
 )
