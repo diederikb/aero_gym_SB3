@@ -16,7 +16,7 @@ def dramp_profile(t, delta_t, start_index, amplitude):
 
 def random_steps_ramps(env: WagnerJonesEnv):
     N_events_max = 20
-    amplitude_max = 0.005
+    amplitude_max = 0.0005
     
     t = np.linspace(0, env.t_max, int(env.t_max / env.delta_t) + 1)
     N_events = env.np_random.integers(N_events_max, endpoint=True)
@@ -36,10 +36,12 @@ def random_steps_ramps(env: WagnerJonesEnv):
         
     return h_ddot
 
-def random_fourier_series(env: WagnerJonesEnv, N=80, T=100):
+def random_fourier_series(env: WagnerJonesEnv, T=100):
     t = np.linspace(0, env.t_max, int(env.t_max / env.delta_t) + 1)
+    
+    N = env.np_random.integers(1, high=T) # need to check if T is a good choice for high
     A = env.np_random.normal(0, 1, N)
 
     s = 0.0
-    s += 0.01*sum(np.sin(2*math.pi/T*n*t)*A[n]/n for n in range(1, N))
+    s += 0.01*sum(np.sin(2*math.pi/T*n*t)*A[n]/(n+1) for n in range(0, N))
     return s
