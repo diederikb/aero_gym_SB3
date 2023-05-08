@@ -64,7 +64,7 @@ dt_str = dt.strftime("%m_%d_%y_%H_%M")
 loggerdir = model.logger.get_dir()
 if loggerdir is None:
     Path(saved_model_dir).mkdir(parents=True,exist_ok=True)
-    saved_model_path = os.path.join(saved_model_dir, case_name + "_" + dt_str + "_" + str(model._total_timesteps))
+    saved_model_path = os.path.join(saved_model_dir, case_name + "_" + dt_str + "_" + str(model._total_timesteps) + "_timesteps")
 else:
     saved_model_path = os.path.join(loggerdir, "saved_model")
 model.save(saved_model_path)
