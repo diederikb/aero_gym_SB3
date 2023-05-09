@@ -20,7 +20,7 @@ logdir=logs
 # root directory for SB3 tensorboard logger and evaluator
 rootdir=/u/home/b/beckers/project-sofia/unsteady_aero_RL/logs/TD3_single_environment
 # number of times each case is run
-num_runs=5
+num_runs=3
 
 declare -a arguments_list=(
     # "DQN jones --use_jones_approx --observe_previous_lift --observe_wake"
@@ -62,6 +62,7 @@ do
         python training_script.py $rootdir $arguments > $logdir/$logfile 2>&1 &
     done
 
+    sleep 5
     # wait
     echo "Batch $i_run out of $num_runs done"
 done
