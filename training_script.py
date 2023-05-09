@@ -1,26 +1,5 @@
 import argparse
-
-parser = argparse.ArgumentParser()
-
-parser.add_argument("root_dir", type = str, help="root directory for logging")
-parser.add_argument("algorithm", type=str, help="learning algorithm")
-parser.add_argument("case_name", type=str, help="case name")
-parser.add_argument("env_name", type=str, help="gym environment")
-parser.add_argument('--observe_wake', default=False, action='store_true')
-parser.add_argument('--observed_alpha_is_eff', default=False, action='store_true')
-parser.add_argument('--observe_circulation', default=False, action='store_true')
-parser.add_argument('--observe_previous_lift', default=False, action='store_true')
-parser.add_argument('--observe_pressure', default=False, action='store_true')
-parser.add_argument("--sensor_x_max", type=float, default=0.5, help="max x-position of sensors (default=-0.5)")
-parser.add_argument("--sensor_x_min", type=float, default=-0.5, help="max x-position of sensors (default=0.5)")
-parser.add_argument("--num_sensors", type=int, default=0, help="number of pressure sensors (default=0)")
-parser.add_argument('--include_sensor_end_positions', dest='include_end_sensors', default=False, action='store_true')
-parser.add_argument("--stacked_frames", type=int, default=1, help="number of frames used in FrameStack wrapper (default=1, i.e. no wrapper)")
-parser.add_argument("--net_arch", type=str, default=None, help="network architecture (default depends on the algorithm used)")
-args = parser.parse_args()
-print(args)
-
-
+import json
 import gymnasium as gym
 from gymnasium.wrappers import FrameStack, FlattenObservation
 import numpy as np
@@ -33,6 +12,33 @@ from stable_baselines3.common.utils import configure_logger
 import custom_callbacks
 import h_ddot_generators
 from os.path import join
+from pathlib import Path
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument("root_dir", type = str, help="root directory for logging")
+parser.add_argument("algorithm", type=str, help="learning algorithm")
+parser.add_argument("case_name", type=str, help="case name")
+parser.add_argument('--use_jones_approx', default=False, action='store_true')
+parser.add_argument('--observe_wake', default=False, action='store_true')
+parser.add_argument('--observed_alpha_is_eff', default=False, action='store_true')
+parser.add_argument('--observe_circulation', default=False, action='store_true')
+parser.add_argument('--observe_previous_lift', default=False, action='store_true')
+parser.add_argument('--observe_pressure', default=False, action='store_true')
+parser.add_argument("--sensor_x_max", type=float, default=0.5, help="max x-position of sensors (default=-0.5)")
+parser.add_argument("--sensor_x_min", type=float, default=-0.5, help="max x-position of sensors (default=0.5)")
+parser.add_argument("--num_sensors", type=int, default=0, help="number of pressure sensors (default=0)")
+parser.add_argument('--include_sensor_end_positions', dest='include_end_sensors', default=False, action='store_true')
+parser.add_argument("--stacked_frames", type=int, default=1, help="number of frames used in FrameStack wrapper (default=1, i.e. no wrapper)")
+parser.add_argument("--net_arch", type=str, default=None, help="network architecture (default depends on the algorithm used)")
+parser.add_argument("--training_hddot_generator", type=str, default="random_steps_ramps", help="h_ddot_generator used to generate training episodes")
+parser.add_argument("--evaluation_hddot_generator", type=str, default="random_steps_ramps", help="h_ddot_generator used to evaluate policy during training")
+args = parser.parse_args()
+print(args)
+
+# Case directory (for logging/saving)
+case_dir = join(args.root_dir, args.algorithm + "_" + args.case_name)
+Path(case_dir).mkdir(parents=True, exist_ok=True)
 
 sensor_positions = np.linspace(
         args.sensor_x_min,
@@ -51,46 +57,42 @@ else:
     net_arch = [int(l) for l in args.net_arch.split(',')]
     policy_kwargs = dict(net_arch=net_arch)
 
-# Case directory (for logging/saving)
-case_dir = join(args.root_dir, args.algorithm + "_" + args.case_name)
+if args.training_hddot_generator == "random_steps_ramps":
+    training_hddot_generator = h_ddot_generators.random_steps_ramps
+elif args.training_hddot_generator == "random_fourier_series":
+    training_hddot_generator = h_ddot_generators.random_fourier_series
+else:
+    raise NotImplementedError("Specified training h_ddot_generator doesn't exist.")
+
+if args.evaluation_hddot_generator == "random_steps_ramps":
+    evaluation_hddot_generator = h_ddot_generators.random_steps_ramps
+elif args.evaluation_hddot_generator == "random_fourier_series":
+    evaluation_hddot_generator = h_ddot_generators.random_fourier_series
+else:
+    raise NotImplementedError("Specified evaluation h_ddot_generator doesn't exist.")
 
 # Time parameters
 t_max = 20
 delta_t = 0.1
 
-if args.env_name == 'aero_gym/wagner-v0':
-    env = gym.make(
-        args.env_name, 
-        render_mode="ansi", 
-        t_max=t_max, 
-        delta_t=delta_t, 
-        continuous_actions=(False if args.algorithm == "DQN" else True),
-        num_discrete_actions=9,
-        h_ddot_generator=h_ddot_generators.random_steps_ramps,
-        reward_type=3, 
-        lift_threshold=0.03,
-        observed_alpha_is_eff=args.observed_alpha_is_eff,
-        observe_wake=args.observe_wake,
-        observe_previous_lift=args.observe_previous_lift,
-        observe_body_circulation=args.observe_circulation,
-        observe_pressure=args.observe_pressure,
-        pressure_sensor_positions=sensor_positions,
-        observe_h_ddot=False)
-else:
-    env = gym.make(
-        args.env_name, 
-        render_mode="ansi", 
-        t_max=t_max, 
-        delta_t=delta_t, 
-        continuous_actions=(False if args.algorithm == "DQN" else True),
-        num_discrete_actions=9,
-        h_ddot_generator=h_ddot_generators.random_steps_ramps,
-        reward_type=3, 
-        lift_threshold=0.03,
-        observed_alpha_is_eff=args.observed_alpha_is_eff,
-        observe_wake=args.observe_wake,
-        observe_previous_lift=args.observe_previous_lift,
-        observe_h_ddot=False)
+env = gym.make(
+    'aero_gym/wagner-v0', 
+    render_mode="ansi", 
+    t_max=t_max, 
+    delta_t=delta_t, 
+    use_jones_approx=args.use_jones_approx,
+    continuous_actions=(False if args.algorithm == "DQN" else True),
+    num_discrete_actions=9,
+    h_ddot_generator=training_hddot_generator,
+    reward_type=3, 
+    observed_alpha_is_eff=args.observed_alpha_is_eff,
+    observe_wake=args.observe_wake,
+    observe_previous_lift=args.observe_previous_lift,
+    observe_body_circulation=args.observe_circulation,
+    observe_pressure=args.observe_pressure,
+    pressure_sensor_positions=sensor_positions,
+    lift_termination=True,
+    observe_h_ddot=False)
 
 if args.stacked_frames > 1:
     env = FlattenObservation(FrameStack(env, args.stacked_frames))
@@ -101,12 +103,16 @@ print(env.observation_space.shape)
 
 # Environment to evaluate policy (used in figure_recoder)
 eval_env = deepcopy(env)
+eval_env.reset(options={"h_ddot_generator":evaluation_hddot_generator})
 
 logger = configure_logger(
     verbose=True,
     tensorboard_log=case_dir,
     tb_log_name=args.algorithm)
 loggerdir = logger.get_dir()
+
+with open(join(loggerdir,'case_args.json'), 'w') as jsonfile:
+    json.dump(vars(args), jsonfile)
 
 if args.algorithm == "DQN":
     model = DQN(
