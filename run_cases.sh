@@ -1,5 +1,5 @@
 #!/bin/bash
-#$ -N TD3_four
+#$ -N TD3_v4
 #$ -cwd
 #$ -o joblog.$JOB_ID
 #$ -e joberr.$JOB_ID
@@ -18,27 +18,27 @@ conda activate gymnasium_28
 
 logdir=logs
 # root directory for SB3 tensorboard logger and evaluator
-rootdir=/u/home/b/beckers/project-sofia/unsteady_aero_RL/logs/TD3_partial_observability_test_v3_fourier_eval
+rootdir=/u/home/b/beckers/project-sofia/unsteady_aero_RL/logs/TD3_partial_observability_test_v4
 # number of times each case is run
-num_runs=10
+num_runs=3
 
 declare -a arguments_list=(
     # "DQN jones aero_gym/wagner_jones-v0 --observe_previous_lift --observe_wake"
     "TD3 jones_1 aero_gym/wagner_jones-v0 --observe_previous_lift --observe_wake --stacked_frames 1"
-    "TD3 jones_2 aero_gym/wagner_jones-v0 --observe_previous_lift --observe_wake --stacked_frames 2"
+    # "TD3 jones_2 aero_gym/wagner_jones-v0 --observe_previous_lift --observe_wake --stacked_frames 2"
     # "DQN no_wake_info aero_gym/wagner-v0 --observe_previous_lift"
     "TD3 no_wake_info_1 aero_gym/wagner-v0 --observe_previous_lift --stacked_frames 1"
-    "TD3 no_wake_info_2 aero_gym/wagner-v0 --observe_previous_lift --stacked_frames 2"
+    # "TD3 no_wake_info_2 aero_gym/wagner-v0 --observe_previous_lift --stacked_frames 2"
     # "DQN circulation aero_gym/wagner-v0 --observe_previous_lift --observe_circulation"
     # "TD3 circulation_1 aero_gym/wagner-v0 --observe_previous_lift --observe_circulation --stacked_frames 1"
     # "TD3 circulation_10 aero_gym/wagner-v0 --observe_previous_lift --observe_circulation --stacked_frames 10"
     # "TD3 circulation_100 aero_gym/wagner-v0 --observe_previous_lift --observe_circulation --stacked_frames 100"
-    "TD3 pressure_1_1 aero_gym/wagner-v0 --observe_previous_lift --observe_pressure --num_sensors 1 --stacked_frames 1"
-    "TD3 pressure_1_2 aero_gym/wagner-v0 --observe_previous_lift --observe_pressure --num_sensors 1 --stacked_frames 2"
+    # "TD3 pressure_1_1 aero_gym/wagner-v0 --observe_previous_lift --observe_pressure --num_sensors 1 --stacked_frames 1"
+    # "TD3 pressure_1_2 aero_gym/wagner-v0 --observe_previous_lift --observe_pressure --num_sensors 1 --stacked_frames 2"
     "TD3 pressure_2_1 aero_gym/wagner-v0 --observe_previous_lift --observe_pressure --num_sensors 2 --stacked_frames 1"
-    "TD3 pressure_2_2 aero_gym/wagner-v0 --observe_previous_lift --observe_pressure --num_sensors 2 --stacked_frames 2"
+    # "TD3 pressure_2_2 aero_gym/wagner-v0 --observe_previous_lift --observe_pressure --num_sensors 2 --stacked_frames 2"
     "TD3 pressure_10_1 aero_gym/wagner-v0 --observe_previous_lift --observe_pressure --num_sensors 10 --stacked_frames 1"
-    "TD3 pressure_10_2 aero_gym/wagner-v0 --observe_previous_lift --observe_pressure --num_sensors 10 --stacked_frames 2"
+    # "TD3 pressure_10_2 aero_gym/wagner-v0 --observe_previous_lift --observe_pressure --num_sensors 10 --stacked_frames 2"
     # "TD3 pressure_1_10 aero_gym/wagner-v0 --observe_previous_lift --observe_pressure --num_sensors 1 --stacked_frames 10"
     # "TD3 pressure_1_100 aero_gym/wagner-v0 --observe_previous_lift --observe_pressure --num_sensors 1 --stacked_frames 100"
     # "DQN pressure_2 aero_gym/wagner-v0 --observe_previous_lift --observe_pressure --num_sensors 2"
@@ -59,10 +59,11 @@ do
         arguments=${arguments_list[$i_args]}
         logfile=$(echo $arguments | cut -d' ' -f2)_run_${i_run}.txt
         echo $logfile
-        python training_script_fourier_eval.py $rootdir $arguments > $logdir/$logfile 2>&1 &
+        python training_script_steps_ramps_eval.py $rootdir $arguments > $logdir/$logfile 2>&1 &
     done
 
-    wait
+    sleep 5
     echo "Batch $i_run out of $num_runs done"
 done
+wait
 echo "All batches done"
