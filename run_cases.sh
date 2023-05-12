@@ -1,5 +1,5 @@
 #!/bin/bash
-#$ -N all_cases
+#$ -N proper2_3
 #$ -cwd
 #$ -o joblog.$JOB_ID
 #$ -e joberr.$JOB_ID
@@ -16,15 +16,19 @@ ls joberr* | grep -Zxv "joberr.${JOB_ID}" | xargs mv -t oldjoblogs/
 module load anaconda3
 conda activate gymnasium_28
 
-logdir=logs
+logdir=logs3
 # root directory for SB3 tensorboard logger and evaluator
-rootdir=/u/home/b/beckers/project-sofia/unsteady_aero_RL/logs/TD3_single_environment
+rootdir=/u/home/b/beckers/project-sofia/unsteady_aero_RL/logs/TD3_single_environment_lift_proper_jones_02_alpha_ddot_02_h_ddot_005
 # number of times each case is run
 num_runs=3
 
+lift_scale=0.2
+alpha_ddot_scale=0.2
+h_ddot_scale=0.05
+
 declare -a arguments_list=(
     # "DQN jones --use_jones_approx --observe_previous_lift --observe_wake"
-    "TD3 jones_1 --use_jones_approx --observe_previous_lift --observe_wake --stacked_frames 1"
+    "TD3 jones_1 --use_jones_approx --observe_previous_lift --observe_wake --observed_alpha_is_eff --stacked_frames 1"
     # "TD3 jones_2 --use_jones_approx --observe_previous_lift --observe_wake --stacked_frames 2"
     # "DQN no_wake_info --observe_previous_lift"
     "TD3 no_wake_info_1 --observe_previous_lift --stacked_frames 1"
@@ -59,10 +63,10 @@ do
         arguments=${arguments_list[$i_args]}
         logfile=$(echo $arguments | cut -d' ' -f2)_run_${i_run}.txt
         echo $logfile
-        python training_script.py $rootdir $arguments > $logdir/$logfile 2>&1 &
+        python training_script.py $rootdir $arguments --lift_scale ${lift_scale} --alpha_ddot_scale ${alpha_ddot_scale} --h_ddot_scale ${h_ddot_scale} > $logdir/$logfile 2>&1 &
     done
 
-    sleep 5
+    sleep 10
     # wait
     echo "Batch $i_run out of $num_runs done"
 done
