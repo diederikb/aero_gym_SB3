@@ -25,6 +25,9 @@ parser.add_argument('--observed_alpha_is_eff', default=False, action='store_true
 parser.add_argument('--observe_circulation', default=False, action='store_true')
 parser.add_argument('--observe_previous_lift', default=False, action='store_true')
 parser.add_argument('--observe_pressure', default=False, action='store_true')
+parser.add_argument("--lift_scale", type=float, default=0.1, help="value that observed lift is scaled by")
+parser.add_argument("--alpha_ddot_scale", type=float, default=0.1, help="value that input alpha_ddot gets scaled by")
+parser.add_argument("--h_ddot_scale", type=float, default=0.05, help="value that input h_ddot gets scaled by")
 parser.add_argument("--sensor_x_max", type=float, default=0.5, help="max x-position of sensors (default=-0.5)")
 parser.add_argument("--sensor_x_min", type=float, default=-0.5, help="max x-position of sensors (default=0.5)")
 parser.add_argument("--num_sensors", type=int, default=0, help="number of pressure sensors (default=0)")
@@ -92,6 +95,9 @@ env = gym.make(
     observe_pressure=args.observe_pressure,
     pressure_sensor_positions=sensor_positions,
     lift_termination=True,
+    alpha_ddot_scale=args.alpha_ddot_scale,
+    lift_scale=args.lift_scale,
+    h_ddot_scale=args.h_ddot_scale,
     observe_h_ddot=False)
 
 if args.stacked_frames > 1:
@@ -105,11 +111,15 @@ print(env.observation_space.shape)
 eval_env = deepcopy(env)
 eval_env.reset(options={"h_ddot_generator":evaluation_hddot_generator})
 
+# This SB3 function checks the existing directories in case_dir and assigns a unique directory for the logger
 logger = configure_logger(
     verbose=True,
     tensorboard_log=case_dir,
     tb_log_name=args.algorithm)
 loggerdir = logger.get_dir()
+Path(loggerdir).mkdir(parents=True, exist_ok=True)
+
+print("loggerdir = " + loggerdir)
 
 with open(join(loggerdir,'case_args.json'), 'w') as jsonfile:
     json.dump(vars(args), jsonfile)
