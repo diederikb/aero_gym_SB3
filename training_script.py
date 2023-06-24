@@ -91,7 +91,6 @@ env = gym.make(
     observed_alpha_is_eff=args.observed_alpha_is_eff,
     observe_wake=args.observe_wake,
     observe_previous_lift=args.observe_previous_lift,
-    observe_body_circulation=args.observe_circulation,
     observe_pressure=args.observe_pressure,
     pressure_sensor_positions=sensor_positions,
     lift_termination=True,
