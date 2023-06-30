@@ -1,5 +1,5 @@
 #!/bin/bash
-#$ -N proper2_3
+#$ -N km1_2
 #$ -cwd
 #$ -o joblog.$JOB_ID
 #$ -e joberr.$JOB_ID
@@ -16,31 +16,40 @@ ls joberr* | grep -Zxv "joberr.${JOB_ID}" | xargs mv -t oldjoblogs/
 module load anaconda3
 conda activate gymnasium_28
 
-logdir=logs3
+logdir=logs
 # root directory for SB3 tensorboard logger and evaluator
-rootdir=/u/home/b/beckers/project-sofia/unsteady_aero_RL/logs/TD3_single_environment_lift_proper_jones_02_alpha_ddot_02_h_ddot_005
+rootdir=/u/home/b/beckers/project-sofia/unsteady_aero_RL/logs/TD3_jones_only_001_alpha_ddot_01_h_ddot_001
+# rootdir=/u/home/b/beckers/project-sofia/unsteady_aero_RL/logs/TD3_previous_info_02_alpha_ddot_02_h_ddot_005
 # number of times each case is run
-num_runs=3
+num_runs=5
 
-lift_scale=0.2
-alpha_ddot_scale=0.2
-h_ddot_scale=0.05
+lift_scale=0.01
+alpha_ddot_scale=0.1
+h_ddot_scale=0.01
+
+# lift_scale=0.2
+# alpha_ddot_scale=0.2
+# h_ddot_scale=0.05
 
 declare -a arguments_list=(
     # "DQN jones --use_jones_approx --observe_previous_lift --observe_wake"
-    "TD3 jones_1 --use_jones_approx --observe_previous_lift --observe_wake --observed_alpha_is_eff --stacked_frames 1"
-    # "TD3 jones_2 --use_jones_approx --observe_previous_lift --observe_wake --stacked_frames 2"
+    # "TD3 jones_1 --use_jones_approx --observe_previous_lift --observe_wake --observe_alpha_eff --stacked_frames 1"
+    # "TD3 jones_2 --use_jones_approx --observe_previous_lift --observe_wake --observe_alpha_eff --stacked_frames 2"
+    "TD3 jones_1 --observe_previous_lift --observe_previous_wake --observe_previous_alpha_eff --stacked_frames 1"
+    "TD3 jones_2 --observe_previous_lift --observe_previous_wake --observe_previous_alpha_eff --stacked_frames 2"
     # "DQN no_wake_info --observe_previous_lift"
     "TD3 no_wake_info_1 --observe_previous_lift --stacked_frames 1"
-    # "TD3 no_wake_info_2 --observe_previous_lift --stacked_frames 2"
+    "TD3 no_wake_info_2 --observe_previous_lift --stacked_frames 2"
     # "DQN circulation --observe_previous_lift --observe_circulation"
     # "TD3 circulation_1 --observe_previous_lift --observe_circulation --stacked_frames 1"
     # "TD3 circulation_10 --observe_previous_lift --observe_circulation --stacked_frames 10"
     # "TD3 circulation_100 --observe_previous_lift --observe_circulation --stacked_frames 100"
-    "TD3 pressure_1_1 --observe_previous_lift --observe_pressure --num_sensors 1 --stacked_frames 1"
+    # "TD3 pressure_1_1 --observe_previous_lift --observe_pressure --num_sensors 1 --stacked_frames 1"
     # "TD3 pressure_1_2 --observe_previous_lift --observe_pressure --num_sensors 1 --stacked_frames 2"
-    "TD3 pressure_2_1 --observe_previous_lift --observe_pressure --num_sensors 2 --stacked_frames 1"
+    # "TD3 pressure_2_1 --observe_previous_lift --observe_pressure --num_sensors 2 --stacked_frames 1"
     # "TD3 pressure_2_2 --observe_previous_lift --observe_pressure --num_sensors 2 --stacked_frames 2"
+    "TD3 pressure_2_1 --observe_previous_lift --observe_previous_pressure --num_sensors 2 --sensor_x_min 0.0 --sensor_x_max 0.25 --stacked_frames 1"
+    "TD3 pressure_2_2 --observe_previous_lift --observe_previous_pressure --num_sensors 2 --sensor_x_min 0.0 --sensor_x_max 0.25 --stacked_frames 2"
     # "TD3 pressure_10_1 --observe_previous_lift --observe_pressure --num_sensors 10 --stacked_frames 1"
     # "TD3 pressure_10_2 --observe_previous_lift --observe_pressure --num_sensors 10 --stacked_frames 2"
     # "TD3 pressure_1_10 --observe_previous_lift --observe_pressure --num_sensors 1 --stacked_frames 10"
@@ -66,9 +75,8 @@ do
         python training_script.py $rootdir $arguments --lift_scale ${lift_scale} --alpha_ddot_scale ${alpha_ddot_scale} --h_ddot_scale ${h_ddot_scale} > $logdir/$logfile 2>&1 &
     done
 
-    sleep 10
-    # wait
+    # sleep 30
+    wait
     echo "Batch $i_run out of $num_runs done"
 done
-wait
 echo "All batches done"

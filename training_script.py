@@ -19,12 +19,15 @@ parser = argparse.ArgumentParser()
 parser.add_argument("root_dir", type = str, help="root directory for logging")
 parser.add_argument("algorithm", type=str, help="learning algorithm")
 parser.add_argument("case_name", type=str, help="case name")
-parser.add_argument('--use_jones_approx', default=False, action='store_true')
+parser.add_argument('--use_discretized_wake', default=False, action='store_true')
 parser.add_argument('--observe_wake', default=False, action='store_true')
-parser.add_argument('--observed_alpha_is_eff', default=False, action='store_true')
+parser.add_argument('--observe_previous_wake', default=False, action='store_true')
+parser.add_argument('--observe_alpha_eff', default=False, action='store_true')
+parser.add_argument('--observe_previous_alpha_eff', default=False, action='store_true')
 parser.add_argument('--observe_circulation', default=False, action='store_true')
 parser.add_argument('--observe_previous_lift', default=False, action='store_true')
-parser.add_argument('--observe_pressure', default=False, action='store_true')
+parser.add_argument('--observe_previous_circulatory_pressure', default=False, action='store_true')
+parser.add_argument('--observe_previous_pressure', default=False, action='store_true')
 parser.add_argument("--lift_scale", type=float, default=0.1, help="value that observed lift is scaled by")
 parser.add_argument("--alpha_ddot_scale", type=float, default=0.1, help="value that input alpha_ddot gets scaled by")
 parser.add_argument("--h_ddot_scale", type=float, default=0.05, help="value that input h_ddot gets scaled by")
@@ -83,15 +86,18 @@ env = gym.make(
     render_mode="ansi", 
     t_max=t_max, 
     delta_t=delta_t, 
-    use_jones_approx=args.use_jones_approx,
+    use_discretized_wake=args.use_discretized_wake,
     continuous_actions=(False if args.algorithm == "DQN" else True),
     num_discrete_actions=9,
     h_ddot_generator=training_hddot_generator,
     reward_type=3, 
-    observed_alpha_is_eff=args.observed_alpha_is_eff,
+    observe_alpha_eff=args.observe_alpha_eff,
+    observe_previous_alpha_eff=args.observe_previous_alpha_eff,
     observe_wake=args.observe_wake,
+    observe_previous_wake=args.observe_previous_wake,
     observe_previous_lift=args.observe_previous_lift,
-    observe_pressure=args.observe_pressure,
+    observe_previous_circulatory_pressure=args.observe_previous_circulatory_pressure,
+    observe_previous_pressure=args.observe_previous_pressure,
     pressure_sensor_positions=sensor_positions,
     lift_termination=True,
     alpha_ddot_scale=args.alpha_ddot_scale,
