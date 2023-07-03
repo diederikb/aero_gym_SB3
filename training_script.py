@@ -20,6 +20,8 @@ parser.add_argument("root_dir", type = str, help="root directory for logging")
 parser.add_argument("algorithm", type=str, help="learning algorithm")
 parser.add_argument("case_name", type=str, help="case name")
 parser.add_argument('--use_discretized_wake', default=False, action='store_true')
+parser.add_argument('--use_discrete_actions', default=False, action='store_true')
+parser.add_argument("--num_discrete_actions", type=int, default=9, help="number of discrete actions (only used when use_discrete_actions=True")
 parser.add_argument('--observe_wake', default=False, action='store_true')
 parser.add_argument('--observe_previous_wake', default=False, action='store_true')
 parser.add_argument('--observe_alpha_eff', default=False, action='store_true')
@@ -87,8 +89,8 @@ env = gym.make(
     t_max=t_max, 
     delta_t=delta_t, 
     use_discretized_wake=args.use_discretized_wake,
-    continuous_actions=(False if args.algorithm == "DQN" else True),
-    num_discrete_actions=9,
+    use_discrete_actions=args.use_discrete_actions,
+    num_discrete_actions=args.num_discrete_actions,
     h_ddot_generator=training_hddot_generator,
     reward_type=3, 
     observe_alpha_eff=args.observe_alpha_eff,
@@ -139,7 +141,7 @@ if args.algorithm == "DQN":
         batch_size=128,
         buffer_size=1_000_000,
         learning_starts=10000)
-else:
+elif args.algorithm == "TD3":
     model = TD3(
         "MlpPolicy", 
         env, 
@@ -151,6 +153,9 @@ else:
         gamma=0.98,
         action_noise=NormalActionNoise(mean=np.zeros(1,dtype=np.float32),sigma=0.1*np.ones(1,dtype=np.float32)),
         train_freq=(1,"episode"))
+else:
+    raise NotImplementedError("Specified RL algorithm is not implemented.")
+
 
 model.set_logger(logger)
 
