@@ -13,57 +13,35 @@ ls joberr* | grep -Zxv "joberr.${JOB_ID}" | xargs mv -t oldjoblogs/
 
 # load modules and activate conda environment
 . /u/local/Modules/default/init/modules.sh
-module load anaconda3
-conda activate gymnasium_28
+
+module load gcc/9.5.0
+module load julia/1.9
+module load python
+module load cuda
+export NSLOTS=12
+source ~/unsteady_aero_RL/gymnasium_28/env_gymnasium_28/bin/activate
 
 logdir=logs
 # root directory for SB3 tensorboard logger and evaluator
-rootdir=/u/home/b/beckers/project-sofia/unsteady_aero_RL/logs/TD3_jones_only_001_alpha_ddot_01_h_ddot_001
+rootdir=/u/home/b/beckers/project-sofia/unsteady_aero_RL/logs/TD3_viscous_flow_test_1
 # rootdir=/u/home/b/beckers/project-sofia/unsteady_aero_RL/logs/TD3_previous_info_02_alpha_ddot_02_h_ddot_005
 # number of times each case is run
-num_runs=5
+num_runs=1
 
-lift_scale=0.01
-alpha_ddot_scale=0.1
-h_ddot_scale=0.01
-
-# lift_scale=0.2
-# alpha_ddot_scale=0.2
-# h_ddot_scale=0.05
+lift_scale=1.0
+alpha_ddot_scale=1
+h_ddot_scale=0.25
+vorticity_scale=1.0
 
 declare -a arguments_list=(
-    # "DQN jones --use_jones_approx --observe_previous_lift --observe_wake"
-    # "TD3 jones_1 --use_jones_approx --observe_previous_lift --observe_wake --observe_alpha_eff --stacked_frames 1"
-    # "TD3 jones_2 --use_jones_approx --observe_previous_lift --observe_wake --observe_alpha_eff --stacked_frames 2"
-    "TD3 jones_1 --observe_previous_lift --observe_previous_wake --observe_previous_alpha_eff --stacked_frames 1"
-    "TD3 jones_2 --observe_previous_lift --observe_previous_wake --observe_previous_alpha_eff --stacked_frames 2"
-    # "DQN no_wake_info --observe_previous_lift"
-    "TD3 no_wake_info_1 --observe_previous_lift --stacked_frames 1"
-    "TD3 no_wake_info_2 --observe_previous_lift --stacked_frames 2"
-    # "DQN circulation --observe_previous_lift --observe_circulation"
-    # "TD3 circulation_1 --observe_previous_lift --observe_circulation --stacked_frames 1"
-    # "TD3 circulation_10 --observe_previous_lift --observe_circulation --stacked_frames 10"
-    # "TD3 circulation_100 --observe_previous_lift --observe_circulation --stacked_frames 100"
-    # "TD3 pressure_1_1 --observe_previous_lift --observe_pressure --num_sensors 1 --stacked_frames 1"
-    # "TD3 pressure_1_2 --observe_previous_lift --observe_pressure --num_sensors 1 --stacked_frames 2"
-    # "TD3 pressure_2_1 --observe_previous_lift --observe_pressure --num_sensors 2 --stacked_frames 1"
-    # "TD3 pressure_2_2 --observe_previous_lift --observe_pressure --num_sensors 2 --stacked_frames 2"
-    "TD3 pressure_2_1 --observe_previous_lift --observe_previous_pressure --num_sensors 2 --sensor_x_min 0.0 --sensor_x_max 0.25 --stacked_frames 1"
-    "TD3 pressure_2_2 --observe_previous_lift --observe_previous_pressure --num_sensors 2 --sensor_x_min 0.0 --sensor_x_max 0.25 --stacked_frames 2"
-    # "TD3 pressure_10_1 --observe_previous_lift --observe_pressure --num_sensors 10 --stacked_frames 1"
-    # "TD3 pressure_10_2 --observe_previous_lift --observe_pressure --num_sensors 10 --stacked_frames 2"
-    # "TD3 pressure_1_10 --observe_previous_lift --observe_pressure --num_sensors 1 --stacked_frames 10"
-    # "TD3 pressure_1_100 --observe_previous_lift --observe_pressure --num_sensors 1 --stacked_frames 100"
-    # "DQN pressure_2 --observe_previous_lift --observe_pressure --num_sensors 2"
-    # "DQN pressure_4 --observe_previous_lift --observe_pressure --num_sensors 4"
-    # "DQN pressure_8 --observe_previous_lift --observe_pressure --num_sensors 8"
-    # "TD3 pressure_8_400_300 --observe_previous_lift --observe_pressure --num_sensors 8 --net_arch 400,300"
-    # "TD3 pressure_8_800_600 --observe_previous_lift --observe_pressure --num_sensors 8 --net_arch 800,600"
-    # "TD3 pressure_8_400_300_300 --observe_previous_lift --observe_pressure --num_sensors 8 --net_arch 400,300,300"
-    # "DQN pressure_8_64_64 --observe_previous_lift --observe_pressure --num_sensors 8 --net_arch 64,64"
-    # "DQN pressure_8_128_128 --observe_previous_lift --observe_pressure --num_sensors 8 --net_arch 128,128"
-    # "DQN pressure_8_256_256 --observe_previous_lift --observe_pressure --num_sensors 8 --net_arch 256,256"
-    # "TD3 pressure_10_2_fourier --observe_previous_lift --observe_pressure --num_sensors 10 --stacked_frames 2"
+    # "wagner TD3 jones_1 --observe_previous_lift --observe_previous_wake --observe_previous_alpha_eff --stacked_frames 1"
+    # "wagner TD3 jones_2 --observe_previous_lift --observe_previous_wake --observe_previous_alpha_eff --stacked_frames 2"
+    # "wagner TD3 no_wake_info_1 --observe_previous_lift --stacked_frames 1"
+    # "wagner TD3 no_wake_info_2 --observe_previous_lift --stacked_frames 2"
+    # "wagner TD3 pressure_2_1 --observe_previous_lift --observe_previous_pressure --num_sensors 2 --sensor_x_min 0.0 --sensor_x_max 0.25 --stacked_frames 1"
+    # "wagner TD3 pressure_2_2 --observe_previous_lift --observe_previous_pressure --num_sensors 2 --sensor_x_min 0.0 --sensor_x_max 0.25 --stacked_frames 2"
+    "viscous_flow TD3 vorticity_1 --observe_lift --observe_vorticity_field --stacked_frames 1"
+    # "viscous_flow TD3 vorticity_2 --observe_lift --observe_vorticity_field --stacked_frames 2"
 )
 
 for (( i_run = 1; i_run <= $num_runs; i_run++ ))
