@@ -1,6 +1,7 @@
 import argparse
 import json
 import gymnasium as gym
+from aero_gym.wrappers.reset_options import ResetOptions
 # from gymnasium.wrappers import FrameStack, FlattenObservation
 import numpy as np
 from stable_baselines3 import DQN, TD3, PPO, SAC
@@ -61,12 +62,14 @@ parser.add_argument("--stacked_frames", type=int, default=1, help="number of fra
 parser.add_argument("--net_arch", type=str, default=None, help="network architecture (default depends on the algorithm used)")
 parser.add_argument("--h_ddot_generator", type=str, default="constant(0)", help="h_ddot generator used to generate training episodes")
 parser.add_argument("--reference_lift_generator", type=str, default="constant(0)", help="reference lift generator used to generate training episodes")
-parser.add_argument("--system_reinitialization_commands_file", type=str, default=None, help="file that contains julia instructions to reinitialize the system at the beginning of every episode")
+parser.add_argument("--sys_reinit_commands", type=str, default=None, help="file that contains julia instructions to reinitialize the system at the beginning of every episode")
+parser.add_argument("--eval_sys_reinit_commands", type=str, default=None, help="file that contains julia instructions to reinitialize the system at the beginning of every evaluation episode")
 parser.add_argument("--model_restart_file", type=str, default=None, help="if specified, load this model and restart the training")
 parser.add_argument("--model_restart_dir", type=str, default=None, help="if specified, load the latest model in this directory and restart the training, or, if there is no saved model, start a new one")
 parser.add_argument("--stats_window_size", type=int, default=10, help="episode window size for the rollout logging averages")
 parser.add_argument("--n_eval_episodes", type=int, default=10, help="number of episodes used to evaluate the policy")
 parser.add_argument("--eval_freq", type=int, default=10000, help="frequency in rollout timesteps of policy evaluation")
+parser.add_argument("--total_timesteps", type=int, default=7.5e5, help="total training timesteps")
 args = parser.parse_args()
 print(args)
 
@@ -85,7 +88,7 @@ else:
     policy = "MlpPolicy"
 
 if args.env == 'wagner':
-    env = gym.make(
+    base_env = gym.make(
         'aero_gym/wagner-v0', 
         render_mode="ansi", 
         t_max=args.t_max, 
@@ -93,7 +96,6 @@ if args.env == 'wagner':
         use_discretized_wake=args.use_discretized_wake,
         use_discrete_actions=args.use_discrete_actions,
         num_discrete_actions=args.num_discrete_actions,
-        h_ddot_generator=eval(args.h_ddot_generator),
         reward_type=args.reward_type, 
         observe_h_ddot=args.observe_h_ddot,
         observe_alpha_eff=args.observe_alpha_eff,
@@ -109,7 +111,7 @@ if args.env == 'wagner':
         lift_scale=args.lift_scale,
         h_ddot_scale=args.h_ddot_scale)
 elif args.env == 'viscous_flow':
-    env = gym.make(
+    base_env = gym.make(
         'aero_gym/viscous_flow-v0', 
         render_mode="ansi", 
         t_max=args.t_max, 
@@ -120,9 +122,6 @@ elif args.env == 'viscous_flow':
         initialization_time=args.initialization_time,
         use_discrete_actions=args.use_discrete_actions,
         num_discrete_actions=args.num_discrete_actions,
-        h_ddot_generator=eval(args.h_ddot_generator),
-        reference_lift_generator=eval(args.reference_lift_generator),
-        system_reinitialization_commands_file=args.system_reinitialization_commands_file,
         reward_type=args.reward_type, 
         observe_h_ddot=args.observe_h_ddot,
         observe_h_dot=args.observe_h_dot,
@@ -144,22 +143,27 @@ elif args.env == 'viscous_flow':
 else:
     raise NotImplementedError("Specified AeroGym environment is not implemented.")
 
-# Create eval env using a wrapper around the above environment such that the same PyJulia is used
-eval_env = Rese
+# Create the evaluation and training environment using a wrapper around the above environment such that the same PyJulia is used. Note that if we apply the options to only one env, they will be overwritten in the other one
+training_env = ResetOptions(base_env, {"h_ddot_generator": eval(args.h_ddot_generator), "reference_lift_generator": eval(args.reference_lift_generator), "sys_reinit_commands": args.sys_reinit_commands})
+eval_env = ResetOptions(base_env, {"sys_reinit_commands": args.eval_sys_reinit_commands})
 
 # Wrapping environment in a Monitor wrapper so we can monitor the rollout episode rewards and lengths
-env = Monitor(env)
+training_env = Monitor(training_env)
+eval_env = Monitor(eval_env)
 
 # Wrapping environment in a DummyVecEnv such that we can apply a VecFrameStack wrapper (because the gymnasium FrameStack wrapper doesn't work with Dict observations
-env = DummyVecEnv([lambda: env])
+training_env = DummyVecEnv([lambda: training_env])
+eval_env = DummyVecEnv([lambda: eval_env])
 
-env = VecFrameStack(env, args.stacked_frames)
+training_env = VecFrameStack(training_env, args.stacked_frames)
+eval_env = VecFrameStack(eval_env, args.stacked_frames)
 
 if args.observe_vorticity_field:
-	env = VecTransposeImage(env)
+    training_env = VecTransposeImage(training_env)
+    eval_env = VecTransposeImage(eval_env)
 
 print("observation_space:")
-print(env.observation_space)
+print(training_env.observation_space)
 
 # If model_restart_dir is specified, find the latest model_restart_file
 if args.model_restart_dir is not None:
@@ -174,6 +178,7 @@ if args.model_restart_dir is not None:
     else:
         args.model_restart_file = None
 
+# If a model_restart_file was provided or found the model_restart_dir, use that one to restart the model. Otherwise, create a new model
 if args.model_restart_file is not None:
     print("Restarting from previously trained model")
     # Recreate the logger from the saved model
@@ -183,17 +188,17 @@ if args.model_restart_file is not None:
     replay_buffer_file = re.sub(r'(_\d+_steps).zip', r'_replay_buffer\1.pkl', args.model_restart_file)
 
     if args.algorithm == "DQN":
-        model = DQN.load(args.model_restart_file, env=env)
+        model = DQN.load(args.model_restart_file, env=training_env)
         if isfile(replay_buffer_file):
             model.load_replay_buffer(replay_buffer_file)
         print(f"The loaded model has {model.replay_buffer.size()} transitions in its buffer")
     elif args.algorithm == "TD3":
-        model = TD3.load(args.model_restart_file, env=env)
+        model = TD3.load(args.model_restart_file, env=training_env)
         if isfile(replay_buffer_file):
             model.load_replay_buffer(replay_buffer_file)
         print(f"The loaded model has {model.replay_buffer.size()} transitions in its buffer")
     elif args.algorithm == "PPO":
-        model = PPO.load(args.model_restart_file, env=env)
+        model = PPO.load(args.model_restart_file, env=training_env)
     else:
         raise NotImplementedError("Specified RL algorithm is not implemented.")
 else:
@@ -210,7 +215,7 @@ else:
     if args.algorithm == "DQN":
         model = DQN(
             policy,
-            env, 
+            training_env, 
             policy_kwargs=policy_kwargs,
             stats_window_size=args.stats_window_size,
             exploration_fraction=0.25, 
@@ -221,7 +226,7 @@ else:
     elif args.algorithm == "TD3":
         model = TD3(
             policy, 
-            env, 
+            training_env, 
             policy_kwargs=policy_kwargs,
             stats_window_size=args.stats_window_size,
             verbose=1,
@@ -234,7 +239,7 @@ else:
     elif args.algorithm == "SAC":
         model = SAC(
             policy, 
-            env, 
+            training_env, 
             policy_kwargs=policy_kwargs,
             stats_window_size=args.stats_window_size,
             verbose=1,
@@ -246,7 +251,7 @@ else:
     elif args.algorithm == "PPO":
         model = PPO(
             policy, 
-            env, 
+            training_env, 
             policy_kwargs=policy_kwargs,
             stats_window_size=args.stats_window_size,
             verbose=1,
@@ -277,7 +282,7 @@ model.set_logger(logger)
 #         log_freq=100 # rollouts
 #     )
 eval_callback = EvalCallback(
-        env,
+        eval_env,
         log_path=loggerdir,
         best_model_save_path=loggerdir,
         eval_freq=args.eval_freq, # steps
@@ -294,5 +299,5 @@ checkpoint_callback = CheckpointCallback(
 # callback_list = CallbackList([figure_recorder, custom_callbacks.HParamCallback(), eval_callback])
 # callback_list = CallbackList([custom_callbacks.HParamCallback(), eval_callback, checkpoint_callback])
 callback_list = CallbackList([eval_callback, checkpoint_callback])
-model.learn(total_timesteps=int(7.5e5), callback=callback_list, reset_num_timesteps=False)
+model.learn(total_timesteps=int(args.total_timesteps), callback=callback_list, reset_num_timesteps=False)
 print("learning finished")

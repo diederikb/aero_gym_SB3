@@ -1,5 +1,5 @@
 #!/bin/bash
-#$ -N TD3_4_pf
+#$ -N TD3_1_vs
 #$ -cwd
 #$ -o joblog.$JOB_ID
 #$ -e joberr.$JOB_ID
@@ -27,16 +27,16 @@ module load cuda
 export NSLOTS=12
 source ~/unsteady_aero_RL/gymnasium_28/env_gymnasium_28/bin/activate
 
-logdir=logs_14_point_force
-# logdir=logs_14_vortex_shedding
+# logdir=logs_15_point_force
+logdir=logs_16_vortex_shedding
 resourcedir=~/unsteady_aero_RL/aero_gym_SB3
 mkdir -p $logdir
 # root directory for SB3 tensorboard logger and evaluator
-# rootdir=/u/home/b/beckers/project-sofia/unsteady_aero_RL/logs/viscous_flow_test_14_vortex_shedding
-rootdir=/u/home/b/beckers/project-sofia/unsteady_aero_RL/logs/viscous_flow_test_14_point_force
+rootdir=/u/home/b/beckers/project-sofia/unsteady_aero_RL/logs/viscous_flow_test_16_vortex_shedding
+# rootdir=/u/home/b/beckers/project-sofia/unsteady_aero_RL/logs/viscous_flow_test_15_point_force
 # rootdir=/u/home/b/beckers/project-sofia/unsteady_aero_RL/logs/TD3_previous_info_02_alpha_ddot_02_h_ddot_005
 # number of times each case is run
-num_runs=5
+num_runs=20
 
 # lift_scale=0.1
 # alpha_ddot_scale=0.05
@@ -62,8 +62,16 @@ declare -a arguments_list=(
     # "viscous_flow SAC pressure_4_4 --reference_lift_generator=random_constant(0.3,0.6) --t_max=20 --delta_t=0.1 --ylim -0.25 0.75 --observe_previous_lift --observe_previous_lift_error --observe_previous_pressure --pressure_sensor_positions -0.3 -0.2 -0.1 0.0 0.1 0.2 0.3 --stacked_frames 4 --lift_upper_limit=1.0 --lift_lower_limit=-0.1 --lift_scale=0.1 --alpha_ddot_scale=10.0 --vorticity_scale=10.0 --n_eval_episodes=10 --eval_freq=10000 --reward_type=4 --model_restart_dir=${rootdir}/SAC_pressure_4_4/SAC_1"
     # "viscous_flow PPO pressure_4_4 --reference_lift_generator=random_constant(0.3,0.6) --t_max=20 --delta_t=0.01 --ylim -0.25 0.75 --observe_previous_lift --observe_previous_lift_error --observe_previous_pressure --pressure_sensor_positions -0.3 -0.2 -0.1 0.0 0.1 0.2 0.3 --stacked_frames 4 --lift_upper_limit=1.0 --lift_lower_limit=-0.1 --lift_scale=0.1 --alpha_ddot_scale=10.0 --vorticity_scale=10.0 --n_eval_episodes=10 --eval_freq=40000 --reward_type=4 --model_restart_dir=${rootdir}/PPO_pressure_4_4/PPO_1"
     # "viscous_flow PPO pressure_4 --reference_lift_generator=random_constant(0.3,0.6) --t_max=20 --delta_t=0.02 --ylim -0.25 0.75 --observe_previous_lift --observe_previous_lift_error --observe_previous_pressure --pressure_sensor_positions -0.3 -0.2 -0.1 0.0 0.1 0.2 0.3 --stacked_frames 4 --lift_upper_limit=1.0 --lift_lower_limit=-0.1 --lift_scale=0.3 --alpha_ddot_scale=5.0 --vorticity_scale=10.0 --n_eval_episodes=10 --eval_freq=20000 --reward_type=3"
-    # "viscous_flow TD3 pressure_4_4 --reference_lift_generator=constant(0.7) --h_ddot_generator=random_d_ramps(max_int_amplitude=0.001,max_d_amplitude=0.001) --alpha_init=0.52356 --initialization_time=10 --t_max=20 --delta_t=0.1 --ylim -0.55 0.65 --observe_previous_lift --observe_previous_lift_error --observe_previous_pressure --pressure_sensor_positions -0.3 -0.2 -0.1 0.0 0.1 0.2 0.3 --stacked_frames 4 --lift_upper_limit=1.2 --lift_lower_limit=0.2 --alpha_upper_limit=0.1 --alpha_lower_limit=-0.7 --alpha_dot_limit=1.8 --lift_scale=0.1 --alpha_ddot_scale=8.0 --vorticity_scale=10.0 --n_eval_episodes=1 --eval_freq=10000 --reward_type=4 --model_restart_dir=${rootdir}/TD3_pressure_4_4/TD3_1"
-    "viscous_flow TD3 pressure_4_4 --system_reinitialization_commands_file=${resourcedir}/julia_system_with_forcing.txt --t_max=3 --delta_t=0.03 --xlim -1.0 1.75 --observe_previous_lift --observe_previous_lift_error --observe_previous_pressure --pressure_sensor_positions -0.3 -0.2 -0.1 0.0 0.1 0.2 0.3 --stacked_frames 4 --lift_upper_limit=0.6 --lift_lower_limit=-0.6 --lift_scale=0.1 --alpha_ddot_scale=10.0 --vorticity_scale=10.0 --n_eval_episodes=1 --eval_freq=10000 --reward_type=4 --model_restart_dir=${rootdir}/TD3_pressure_4_4/TD3_1"
+
+    # Vortex shedding
+    "viscous_flow TD3 pressure_7_4 --reference_lift_generator=constant(0.7) --h_ddot_generator=random_d_ramps(max_int_amplitude=0.01,max_d_amplitude=0.01) --alpha_init=0.52356 --initialization_time=10 --t_max=20 --delta_t=0.1 --ylim -0.55 0.85 --observe_previous_lift --observe_previous_lift_error --observe_previous_pressure --pressure_sensor_positions -0.3 -0.2 -0.1 0.0 0.1 0.2 0.3 --stacked_frames 4 --lift_upper_limit=1.2 --lift_lower_limit=0.2 --alpha_upper_limit=0.1 --alpha_lower_limit=-0.7 --alpha_dot_limit=1.8 --lift_scale=0.1 --alpha_ddot_scale=8.0 --vorticity_scale=10.0 --n_eval_episodes=1 --eval_freq=1000 --reward_type=4 --model_restart_dir=${rootdir}/TD3_pressure_7_4/TD3_1 --total_timesteps=10100"
+    # "viscous_flow TD3 pressure_3_4 --reference_lift_generator=constant(0.7) --h_ddot_generator=random_d_ramps(max_int_amplitude=0.001,max_d_amplitude=0.001) --alpha_init=0.52356 --initialization_time=10 --t_max=20 --delta_t=0.1 --ylim -0.55 0.65 --observe_previous_lift --observe_previous_lift_error --observe_previous_pressure --pressure_sensor_positions -0.3 0.0 0.3 --stacked_frames 4 --lift_upper_limit=1.2 --lift_lower_limit=0.2 --alpha_upper_limit=0.1 --alpha_lower_limit=-0.7 --alpha_dot_limit=1.8 --lift_scale=0.1 --alpha_ddot_scale=8.0 --vorticity_scale=10.0 --n_eval_episodes=1 --eval_freq=1000 --reward_type=4 --model_restart_dir=${rootdir}/TD3_pressure_3_4/TD3_4 --total_timesteps=10100"
+    # "viscous_flow TD3 no_wake_info --reference_lift_generator=constant(0.7) --h_ddot_generator=random_d_ramps(max_int_amplitude=0.001,max_d_amplitude=0.001) --alpha_init=0.52356 --initialization_time=10 --t_max=20 --delta_t=0.1 --ylim -0.55 0.65 --observe_previous_lift --observe_previous_lift_error --stacked_frames 4 --lift_upper_limit=1.2 --lift_lower_limit=0.2 --alpha_upper_limit=0.1 --alpha_lower_limit=-0.7 --alpha_dot_limit=1.8 --lift_scale=0.1 --alpha_ddot_scale=8.0 --vorticity_scale=10.0 --n_eval_episodes=1 --eval_freq=1000 --reward_type=4 --model_restart_dir=${rootdir}/TD3_no_wake_info/TD3_4 --total_timesteps=10100"
+    
+    # Point forcing
+    # "viscous_flow TD3 pressure_7_4 --eval_sys_reinit_commands=${resourcedir}/julia_system_with_forcing.jl --sys_reinit_commands=${resourcedir}/julia_system_with_random_forcing.jl --t_max=3 --delta_t=0.03 --xlim -1.0 1.75 --observe_previous_lift --observe_previous_lift_error --observe_previous_pressure --pressure_sensor_positions -0.3 -0.2 -0.1 0.0 0.1 0.2 0.3 --stacked_frames 4 --lift_upper_limit=0.6 --lift_lower_limit=-0.6 --lift_scale=0.1 --alpha_ddot_scale=10.0 --vorticity_scale=10.0 --n_eval_episodes=1 --eval_freq=1000 --reward_type=4 --model_restart_dir=${rootdir}/TD3_pressure_7_4/TD3_10 --total_timesteps=10100"
+    # "viscous_flow TD3 pressure_3_4 --eval_sys_reinit_commands=${resourcedir}/julia_system_with_forcing.jl --sys_reinit_commands=${resourcedir}/julia_system_with_random_forcing.jl --t_max=3 --delta_t=0.03 --xlim -1.0 1.75 --observe_previous_lift --observe_previous_lift_error --observe_previous_pressure --pressure_sensor_positions -0.3 0.0 0.3 --stacked_frames 4 --lift_upper_limit=0.6 --lift_lower_limit=-0.6 --lift_scale=0.1 --alpha_ddot_scale=10.0 --vorticity_scale=10.0 --n_eval_episodes=1 --eval_freq=1000 --reward_type=4 --model_restart_dir=${rootdir}/TD3_pressure_3_4/TD3_10 --total_timesteps=10100"
+    # "viscous_flow TD3 no_wake_info_4 --eval_sys_reinit_commands=${resourcedir}/julia_system_with_forcing.jl --sys_reinit_commands=${resourcedir}/julia_system_with_random_forcing.jl --t_max=3 --delta_t=0.03 --xlim -1.0 1.75 --observe_previous_lift --observe_previous_lift_error --stacked_frames 4 --lift_upper_limit=0.6 --lift_lower_limit=-0.6 --lift_scale=0.1 --alpha_ddot_scale=10.0 --vorticity_scale=10.0 --n_eval_episodes=1 --eval_freq=1000 --reward_type=4 --model_restart_dir=${rootdir}/TD3_no_wake_info_4/TD3_10 --total_timesteps=10100"
 )
 
 for (( i_run = 1; i_run <= $num_runs; i_run++ ))
