@@ -1,0 +1,49 @@
+{
+    "root_dir": null,
+    "env": "wagner-v0",
+    "case_name": null,
+    "algorithm": "TD3",
+    "policy": "MlpPolicy",
+    "total_timesteps": 7.5e5,
+    "stacked_frames": 2,
+    "h_ddot_generator": "random_mixed_events(random_d_steps_ramps(max_int_amplitude=0.1, max_d_amplitude=0.01), random_fourier_series(max_amplitude=0.05, T=40, min_mode=5, max_mode=35, max_n_modes=30))",
+    "reference_lift_generator": "constant(0)",
+    "env_kwargs":
+        {
+            "delta_t": 0.1,
+            "t_max": 20.0,
+            "alpha_init": 0.0,
+            "reward_type": 4,
+            "observe_h_ddot": false,
+            "observe_h_dot": false,
+            "observe_previous_lift": true,
+            "observe_previous_lift_error": true,
+            "observe_previous_pressure": true,
+            "lift_scale": 0.01,
+            "lift_upper_limit": 0.1,
+            "lift_lower_limit": -0.1,
+            "alpha_upper_limit": 1.0471975511965976,
+            "alpha_lower_limit": -1.0471975511965976,
+            "alpha_dot_limit": 0.1,
+            "alpha_ddot_scale": 0.1,
+            "h_ddot_scale": 0.01,
+            "pressure_sensor_positions": [0.0, 0.25],
+            "lift_termination": true
+        },
+    "training_algorithm_kwargs":
+        {
+            "stats_window_size": 10,
+            "verbose": 1,
+            "batch_size": 256,
+            "buffer_size": 1000000,
+            "learning_starts": 10000,
+            "gamma": 0.98,
+            "action_noise": "NormalActionNoise(mean=np.zeros(1,dtype=np.float32),sigma=0.1*np.ones(1,dtype=np.float32))",
+            "train_freq": "(1,\"episode\")"
+        },
+    "eval_callback_kwargs":
+        {
+            "n_eval_episodes": 20,
+            "eval_freq": 1000
+        }
+}
