@@ -14,7 +14,7 @@ from stable_baselines3.common.logger import configure
 from stable_baselines3.common.monitor import Monitor
 from trajectory_generators import *
 from os.path import join, isfile, dirname
-from os import listdir
+from os import listdir, system
 from pathlib import Path
 import re
 
@@ -27,6 +27,7 @@ cli_parser.add_argument("--root_dir", type = str, help="root directory for loggi
 cli_parser.add_argument("--env", type=str, help="AeroGym environment")
 cli_parser.add_argument("--algorithm", type=str, help="learning algorithm")
 cli_parser.add_argument("--policy", type=str, help="the policy model to use")
+cli_parser.add_argument("--net_arch", type=int, nargs='*', help="network layer sizes")
 cli_parser.add_argument("--case_name", type=str, help="case name")
 cli_parser.add_argument("--total_timesteps", type=int, help="total training timesteps")
 cli_parser.add_argument("--stacked_frames", type=int, help="total training timesteps")
@@ -34,11 +35,17 @@ cli_parser.add_argument("--training_sys_reinit_commands", type=str, help="file t
 cli_parser.add_argument("--eval_sys_reinit_commands", type=str, help="file that contains julia instructions to reinitialize the system at the beginning of every evaluation episode")
 cli_parser.add_argument("--model_restart_file", type=str, help="if specified, load this model and restart the training")
 cli_parser.add_argument("--model_restart_dir", type=str, help="if specified, load the latest model in this directory and restart the training, or, if there is no saved model, start a new one")
-cli_parser.add_argument("--h_ddot_generator", type=str, help="h_ddot generator used to generate training episodes")
-cli_parser.add_argument("--reference_lift_generator", type=str, help="reference lift generator used to generate training episodes")
+cli_parser.add_argument("--training_h_ddot_generator", type=str, help="h_ddot generator used to generate training episodes")
+cli_parser.add_argument("--eval_h_ddot_generator", type=str, help="h_ddot generator used to generate evaluation episodes")
+cli_parser.add_argument("--training_reference_lift_generator", type=str, help="reference lift generator used to generate training episodes")
+cli_parser.add_argument("--eval_reference_lift_generator", type=str, help="reference lift generator used to generate evaluation episodes")
+cli_parser.add_argument("--eval_reward_type", type=int, help="reward type used during evaluation episodes. If not specified, the training reward type is used.")
+cli_parser.add_argument("--eval_lift_upper_limit", type=float, help="upper limit for the unscaled lift during evaluation. The evaluation episode terminates if exceeded")
+cli_parser.add_argument("--eval_lift_lower_limit", type=float, help="lower limit for the unscaled lift during evaluation. The evaluation episode terminates if exceeded")
 
 cli_env_parser.add_argument("--delta_t", type=float, help="minimum time step of the RL environment")
 cli_env_parser.add_argument("--t_max", type=float, help="maximum episode time length")
+cli_env_parser.add_argument("--reward_type", type=int, help="reward type")
 cli_env_parser.add_argument("--xlim", type=float, nargs='*', help="x limits of the flow domain")
 cli_env_parser.add_argument("--ylim", type=float, nargs='*', help="y limits of the flow domain")
 cli_env_parser.add_argument("--initialization_time", type=float, help="the time after impulsively starting the flow for the solution that is used to initialize the episodes")
@@ -46,6 +53,8 @@ cli_env_parser.add_argument("--alpha_init", type=float, help="the initial angle 
 cli_env_parser.add_argument('--observe_wake', action='store_true')
 cli_env_parser.add_argument('--observe_vorticity_field', action='store_true')
 cli_env_parser.add_argument('--observe_previous_wake', action='store_true')
+cli_env_parser.add_argument('--observe_alpha', action='store_true')
+cli_env_parser.add_argument('--observe_alpha_dot', action='store_true')
 cli_env_parser.add_argument('--observe_h_ddot', action='store_true')
 cli_env_parser.add_argument('--observe_h_dot', action='store_true')
 cli_env_parser.add_argument('--observe_alpha_eff', action='store_true')
@@ -53,6 +62,8 @@ cli_env_parser.add_argument('--observe_previous_alpha_eff', action='store_true')
 cli_env_parser.add_argument('--observe_circulation', action='store_true')
 cli_env_parser.add_argument('--observe_previous_lift', action='store_true')
 cli_env_parser.add_argument('--observe_previous_lift_error', action='store_true')
+cli_env_parser.add_argument('--observe_previous_lift_sqrt_error', action='store_true')
+cli_env_parser.add_argument('--observe_previous_lift_integrated_error', action='store_true')
 cli_env_parser.add_argument('--observe_previous_circulatory_pressure', action='store_true')
 cli_env_parser.add_argument('--observe_previous_pressure', action='store_true')
 cli_env_parser.add_argument("--lift_scale", type=float, help="value that observed lift is scaled by")
@@ -89,9 +100,11 @@ for k in ["train_freq", "action_noise"]:
 
 # Create defaults for some keys if they are not present in parsed_input_dict
 defaults = {
-        "h_ddot_generator": "constant(0)",
-        "reference_lift_generator": "constant(0)",
+        "training_h_ddot_generator": "constant(0)",
+        "training_reference_lift_generator": "constant(0)",
         "training_sys_reinit_commands": None,
+        "eval_h_ddot_generator": "constant(0)",
+        "eval_reference_lift_generator": "constant(0)",
         "eval_sys_reinit_commands": None,
         "model_restart_dir": None,
         "model_restart_file": None,
@@ -106,24 +119,36 @@ print(parsed_input_dict)
 case_dir = join(parsed_input_dict["root_dir"], parsed_input_dict["algorithm"] + "_" + parsed_input_dict["case_name"])
 Path(case_dir).mkdir(parents=True, exist_ok=True)
 
-base_env = gym.make("aero_gym/" + parsed_input_dict["env"], **parsed_input_dict["env_kwargs"])
+# Create the evaluation and training environment using a wrapper around a base environment such that the same PyJulia is used. Note that if we apply the options to only one env, they will be overwritten in the other one
+# Ideally, we would have two truly separate environments, but PyJulia prevents us from efficiently running multiple Julia processes
+base_training_env = gym.make("aero_gym/" + parsed_input_dict["env"], **parsed_input_dict["env_kwargs"])
+if parsed_input_dict["env"] == "wagner-v0":
+    base_eval_env = gym.make("aero_gym/" + parsed_input_dict["env"], **parsed_input_dict["env_kwargs"])
+else:
+    base_eval_env = base_training_env
 
-# Create the evaluation and training environment using a wrapper around the above environment such that the same PyJulia is used. Note that if we apply the options to only one env, they will be overwritten in the other one
-training_env = ResetOptions(
-    base_env,
-    {
-        "h_ddot_generator": eval(parsed_input_dict["h_ddot_generator"]),
-        "reference_lift_generator": eval(parsed_input_dict["reference_lift_generator"]),
-        "sys_reinit_commands": parsed_input_dict["training_sys_reinit_commands"]
+training_reset_dict = {
+        "h_ddot_generator": eval(parsed_input_dict["training_h_ddot_generator"]),
+        "reference_lift_generator": eval(parsed_input_dict["training_reference_lift_generator"]),
+        "sys_reinit_commands": parsed_input_dict["training_sys_reinit_commands"],
     }
-)
-eval_env = ResetOptions(base_env, {"sys_reinit_commands": parsed_input_dict["eval_sys_reinit_commands"]})
+training_reset_dict.update({k: v for (k,v) in parsed_input_dict["env_kwargs"].items() if k in ["reward_type", "lift_upper_limit", "lift_lower_limit"]})
+training_env = ResetOptions(base_training_env, training_reset_dict)
+
+eval_reset_dict = {
+        "h_ddot_generator": eval(parsed_input_dict["eval_h_ddot_generator"]),
+        "reference_lift_generator": eval(parsed_input_dict["eval_reference_lift_generator"]),
+        "sys_reinit_commands": parsed_input_dict["eval_sys_reinit_commands"],
+    }
+# not the best way to do this
+eval_reset_dict.update({k[5:]: v for (k,v) in parsed_input_dict.items() if k in ["eval_reward_type", "eval_lift_upper_limit", "eval_lift_lower_limit"]})
+eval_env = ResetOptions(base_eval_env, eval_reset_dict)
 
 # Wrapping environment in a Monitor wrapper so we can monitor the rollout episode rewards and lengths
 training_env = Monitor(training_env)
 eval_env = Monitor(eval_env)
 
-# Wrapping environment in a DummyVecEnv such that we can apply a VecFrameStack wrapper (because the gymnasium FrameStack wrapper doesn't work with Dict observations
+# Wrapping environment in a DummyVecEnv such that we can apply a VecFrameStack wrapper (because the gymnasium FrameStack wrapper doesn't work with Dict observations)
 training_env = DummyVecEnv([lambda: training_env])
 eval_env = DummyVecEnv([lambda: eval_env])
 
@@ -131,7 +156,7 @@ training_env = VecFrameStack(training_env, parsed_input_dict["stacked_frames"])
 eval_env = VecFrameStack(eval_env, parsed_input_dict["stacked_frames"])
 
 if "observe_vorticity_field" in parsed_input_dict["env_kwargs"].keys():
-    if parsed_input_dict["observe_vorticity_field"] == True:
+    if parsed_input_dict["env_kwargs"]["observe_vorticity_field"] == True:
         training_env = VecTransposeImage(training_env)
         eval_env = VecTransposeImage(eval_env)
 
@@ -176,9 +201,12 @@ else:
             verbose=True,
             tensorboard_log=case_dir,
             tb_log_name=parsed_input_dict["algorithm"])
+
+    policy_kwargs = {k: v for (k,v) in parsed_input_dict.items() if k in ["net_arch"]}
     model = getattr(sys.modules[__name__], parsed_input_dict["algorithm"])(
         parsed_input_dict["policy"],
         training_env, 
+        policy_kwargs=policy_kwargs,
         **parsed_input_dict["training_algorithm_kwargs"]
     )
     # model = TD3('MlpPolicy', training_env)
@@ -207,14 +235,21 @@ eval_callback = EvalCallback(
         render=False,
         **parsed_input_dict["eval_callback_kwargs"]
     )
+# Since np.savez doesn't have the functionality to append to existing numpy archives, we move the old evaluations.npz if it exists
+previous_npz_archives_dir = join(loggerdir, "previous_archives")
+Path(previous_npz_archives_dir).mkdir(parents=True, exist_ok=True)
+system(f'mv --backup=numbered {loggerdir}/evaluations.npz {previous_npz_archives_dir}')
+
 checkpoint_callback = CheckpointCallback(
-        save_freq=10_000,
         save_path=loggerdir,
         name_prefix="rl_model",
-        save_replay_buffer=True
+        save_replay_buffer=True,
+        **parsed_input_dict["checkpoint_callback_kwargs"]
     )
 # callback_list = CallbackList([figure_recorder, custom_callbacks.HParamCallback(), eval_callback])
 # callback_list = CallbackList([custom_callbacks.HParamCallback(), eval_callback, checkpoint_callback])
 callback_list = CallbackList([eval_callback, checkpoint_callback])
 model.learn(total_timesteps=int(parsed_input_dict["total_timesteps"]), callback=callback_list, reset_num_timesteps=False)
+# Move evaluations.npz to previous_npz_archives_dir
+system(f'mv --backup=numbered {loggerdir}/evaluations.npz {previous_npz_archives_dir}')
 print("learning finished")

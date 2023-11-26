@@ -4,30 +4,33 @@
     "case_name": null,
     "algorithm": "TD3",
     "policy": "MlpPolicy",
-    "total_timesteps": 7.5e5,
+    "total_timesteps": 1e6,
     "stacked_frames": 2,
-    "h_ddot_generator": "random_mixed_events(random_d_steps_ramps(max_int_amplitude=0.1, max_d_amplitude=0.01), random_fourier_series(max_amplitude=0.05, T=40, min_mode=5, max_mode=35, max_n_modes=30))",
-    "reference_lift_generator": "constant(0)",
+    "training_h_ddot_generator": "random_mixed_events(random_d_steps_ramps(max_int_amplitude=0.01, max_d_amplitude=0.01), random_fourier_series(max_amplitude=0.02, T=40, min_mode=5, max_mode=50))",
+    "eval_h_ddot_generator": "impulse(0.01,1)",
+    "eval_reward_type": 1,
+    "eval_lift_termination": true,
+    "eval_lift_upper_limit": 0.1,
+    "eval_lift_lower_limit": -0.1,
     "env_kwargs":
         {
             "delta_t": 0.1,
             "t_max": 20.0,
             "alpha_init": 0.0,
-            "reward_type": 4,
+            "reward_type": 3,
+            "observe_alpha": false,
+            "observe_alpha_dot": false,
             "observe_h_ddot": false,
             "observe_h_dot": false,
             "observe_previous_lift": true,
-            "observe_previous_lift_error": true,
-            "observe_previous_pressure": true,
+            "observe_previous_lift_error": false,
+            "observe_previous_pressure": false,
+            "pressure_sensor_positions": [0.0, 0.25],
             "lift_scale": 0.01,
-            "lift_upper_limit": 0.1,
-            "lift_lower_limit": -0.1,
-            "alpha_upper_limit": 1.0471975511965976,
-            "alpha_lower_limit": -1.0471975511965976,
-            "alpha_dot_limit": 0.1,
+            "lift_upper_limit": 0.01,
+            "lift_lower_limit": -0.01,
             "alpha_ddot_scale": 0.1,
             "h_ddot_scale": 0.01,
-            "pressure_sensor_positions": [0.0, 0.25],
             "lift_termination": true
         },
     "training_algorithm_kwargs":
@@ -43,7 +46,7 @@
         },
     "eval_callback_kwargs":
         {
-            "n_eval_episodes": 20,
+            "n_eval_episodes": 1,
             "eval_freq": 1000
         }
 }

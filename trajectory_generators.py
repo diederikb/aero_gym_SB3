@@ -39,7 +39,7 @@ def dramp_profile(t, delta_t, start_index, amplitude):
     return ar
 
 """
-Create a function that takes an AeroGym environment and generates a numpy array filled with `value` with a size corresponding to the maximum number of timesteps in the passed environment.
+Create a function that takes an AeroGym environment and generates a numpy array filled with `value` with its size corresponding to the maximum number of timesteps in the passed environment.
 """
 def constant(value):
     def constant_array_generator(env):
@@ -57,9 +57,14 @@ def random_constant(min_value, max_value):
         return generated_array
     return random_constant_array_generator
 
-"""
-Create a function that takes an AeroGym environment and generates a numpy array filled with `value` with a size corresponding to the maximum number of timesteps in the passed environment.
-"""
+def step(value, t_step=0.0):
+    def step_array_generator(env):
+        idx_step = int(np.ceil(t_step / env.delta_t))
+        generated_array = np.zeros(int(env.t_max / env.delta_t) + 1)
+        generated_array[idx_step:] = value
+        return generated_array
+    return step_array_generator
+
 def impulse(value, t_impulse=0.0):
     def impulse_generator(env):
         idx_impulse = int(np.ceil(t_impulse / env.delta_t))
@@ -135,12 +140,13 @@ def random_d_steps_ramps(n_events_max=20, max_int_amplitude=1.0, max_d_amplitude
 """
 Create a function that takes an AeroGym environment and generates a numpy array with a size corresponding to the maximum number of timesteps in the passed environment and containing a trajectory consisting of a random number (up to `n_modes_max`) of fourier sine modes where the n-th mode has a frequency of 1/`T` and random amplitudes between 0 and 1/n. 
 """
-def random_fourier_series(T=30, min_mode=1, max_mode=100, max_n_modes=100, max_amplitude=1):
+def random_fourier_series(T=30, min_mode=1, max_mode=100, max_amplitude=1):
     def random_fourier_series_generator(env):
         t = np.linspace(0, env.t_max, int(env.t_max / env.delta_t) + 1)
         
-        n_modes = env.np_random.integers(1, high=max_n_modes, endpoint=True)
-        modes = np.unique(env.np_random.integers(min_mode, high=max_mode+1, size=n_modes, endpoint=True))
+        # n_modes = env.np_random.integers(1, high=max_n_modes, endpoint=True)
+        # modes = np.unique(env.np_random.integers(min_mode, high=max_mode+1, size=n_modes, endpoint=True))
+        modes = range(min_mode, max_mode + 1)
         n_modes = len(modes)
         A = env.np_random.normal(0, 1, n_modes)
 
