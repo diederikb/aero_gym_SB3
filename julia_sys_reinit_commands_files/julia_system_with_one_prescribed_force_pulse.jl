@@ -2,7 +2,7 @@
 σy = 0.1
 x0 = -1.0
 y0 = 0
-amp = 1.0
+amp = 1.5
 force_dist = [EmptySpatialField(),SpatialGaussian(σx,σy,x0,y0,amp)];
 
 function forcing_model!(σ,T,t,fr::AreaRegionCache,phys_params)

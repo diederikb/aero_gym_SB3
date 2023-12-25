@@ -1,6 +1,6 @@
-force_dist_1 = [EmptySpatialField(),SpatialGaussian(0.1,0.1,-1.0,0.0,1.4)];
-force_dist_2 = [EmptySpatialField(),SpatialGaussian(0.1,0.1,-1.0,0.0,-1.4)];
-force_dist_3 = [EmptySpatialField(),SpatialGaussian(0.1,0.1,-1.0,0.0,1.4)];
+force_dist_1 = [EmptySpatialField(),SpatialGaussian(0.1,0.1,-1.0,0.0,1.5)];
+force_dist_2 = [EmptySpatialField(),SpatialGaussian(0.1,0.1,-1.0,0.0,1.5)];
+force_dist_3 = [EmptySpatialField(),SpatialGaussian(0.1,0.1,-1.0,0.0,1.5)];
 
 function forcing_model_1!(σ,T,t,fr::AreaRegionCache,phys_params)
     σt = phys_params["sigma_1"]
@@ -28,9 +28,9 @@ afm_2 = AreaForcingModel(forcing_model_2!,spatialfield=force_dist_2)
 afm_3 = AreaForcingModel(forcing_model_3!,spatialfield=force_dist_3)
 forcingdict = Dict("forcing models" => AbstractForcingModel[afm_1, afm_2, afm_3]);
 
-my_params["sigma_1"] = 0.075
-my_params["sigma_2"] = 0.075
-my_params["sigma_3"] = 0.075
+my_params["sigma_1"] = 0.05
+my_params["sigma_2"] = 0.05
+my_params["sigma_3"] = 0.05
 my_params["t0_1"] = 0.5
 my_params["t0_2"] = 1.0
 my_params["t0_3"] = 1.5

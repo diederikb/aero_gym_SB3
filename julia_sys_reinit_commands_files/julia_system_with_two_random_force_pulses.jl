@@ -3,13 +3,13 @@ force_dist_1 = [EmptySpatialField(),SpatialGaussian(
     0.01 + 0.09 *rand(Float64),
     -1.05 + 0.1 *rand(Float64),
     -0.05 + 0.1 * rand(Float64),
-    -1.0 + 2.0 *rand(Float64))];
+    -1.5 + 3.0 *rand(Float64))];
 force_dist_2 = [EmptySpatialField(),SpatialGaussian(
     0.01 + 0.09 *rand(Float64),
     0.01 + 0.09 *rand(Float64),
     -1.05 + 0.1 *rand(Float64),
     -0.05 + 0.1 * rand(Float64),
-    -1.0 + 2.0 *rand(Float64))];
+    -1.5 + 3.0 *rand(Float64))];
 
 function forcing_model_1!(σ,T,t,fr::AreaRegionCache,phys_params)
     σt = phys_params["sigma_1"]
