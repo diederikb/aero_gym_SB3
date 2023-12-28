@@ -13,10 +13,34 @@ from stable_baselines3.common.utils import configure_logger
 from stable_baselines3.common.logger import configure
 from stable_baselines3.common.monitor import Monitor
 from trajectory_generators import *
-from os.path import join, isfile, dirname
-from os import listdir, system
 from pathlib import Path
 import re
+import shutil
+import os
+
+# Function to perform "mv --backup=ordered" on MacOS
+def ordered_archive(source_file, target_directory):
+    if os.path.exists(source_file):
+        # Extract filename from the full path
+        filename = os.path.basename(source_file)
+
+        # Determine archive filename with ordered suffix
+        archive_suffix = ".archive"
+        archive_file = os.path.join(target_directory, f"{filename}{archive_suffix}")
+
+        # Check if the archive file already exists
+        count = 1
+        while os.path.exists(archive_file):
+            archive_file = os.path.join(target_directory, f"{filename}{archive_suffix}.{count}")
+            count += 1
+
+        # Perform the archive
+        shutil.copy(source_file, archive_file)
+
+        # Remove the original file
+        os.remove(source_file)
+    else:
+        print("Error: Source file not found.")
 
 # Use command-line input to get the input file and to overwrite any settings in the input file
 cli_parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
@@ -116,16 +140,16 @@ for k, v in defaults.items():
 print(parsed_input_dict)
 
 # Case directory (for logging/saving)
-case_dir = join(parsed_input_dict["root_dir"], parsed_input_dict["algorithm"] + "_" + parsed_input_dict["case_name"])
+case_dir = os.path.join(parsed_input_dict["root_dir"], parsed_input_dict["algorithm"] + "_" + parsed_input_dict["case_name"])
 Path(case_dir).mkdir(parents=True, exist_ok=True)
 
 # Create the evaluation and training environment using a wrapper around a base environment such that the same PyJulia is used. Note that if we apply the options to only one env, they will be overwritten in the other one
 # Ideally, we would have two truly separate environments, but PyJulia prevents us from efficiently running multiple Julia processes
 base_training_env = gym.make("aero_gym/" + parsed_input_dict["env"], **parsed_input_dict["env_kwargs"])
-if parsed_input_dict["env"] == "wagner-v0":
-    base_eval_env = gym.make("aero_gym/" + parsed_input_dict["env"], **parsed_input_dict["env_kwargs"])
-else:
-    base_eval_env = base_training_env
+# if parsed_input_dict["env"] == "wagner-v0":
+#     base_eval_env = gym.make("aero_gym/" + parsed_input_dict["env"], **parsed_input_dict["env_kwargs"])
+# else:
+base_eval_env = base_training_env
 
 training_reset_dict = {
         "h_ddot_generator": eval(parsed_input_dict["training_h_ddot_generator"]),
@@ -168,26 +192,27 @@ if parsed_input_dict["model_restart_dir"] is not None:
     # Make the directory in case it doesn't exist yet
     Path(parsed_input_dict["model_restart_dir"]).mkdir(parents=True, exist_ok=True)
     # Find the saved models in the directory (in case it existed before)
-    saved_models = [f for f in listdir(parsed_input_dict["model_restart_dir"]) if re.search(r'_\d+_steps.zip',f)]
+    saved_models = [f for f in os.listdir(parsed_input_dict["model_restart_dir"]) if re.search(r'_\d+_steps.zip',f)]
     if saved_models:
         latest_model_idx = np.argmax([int(re.sub(r'.*_(\d+)_steps.zip', r'\1', f)) for f in saved_models])
-        parsed_input_dict["model_restart_file"] = join(parsed_input_dict["model_restart_dir"], saved_models[latest_model_idx])
-        print("Found restart file " + parsed_input_dict["model_restart_file"])
+        parsed_input_dict["model_restart_file"] = os.path.join(parsed_input_dict["model_restart_dir"], saved_models[latest_model_idx])
+        print("Found restart file in specified restart dir (" + parsed_input_dict["model_restart_dir"] + "): " + parsed_input_dict["model_restart_file"])
     else:
         parsed_input_dict["model_restart_file"] = None
+        print("Found NO restart file in specified restart dir (" + parsed_input_dict["model_restart_dir"] + ")")
 
 # If a model_restart_file was provided or found the model_restart_dir, use that one to restart the model. Otherwise, create a new model
 if parsed_input_dict["model_restart_file"] is not None:
     print("Restarting from previously trained model")
     # Recreate the logger from the saved model
-    loggerdir = dirname(parsed_input_dict["model_restart_file"])
+    loggerdir = os.path.dirname(parsed_input_dict["model_restart_file"])
     logger = configure(loggerdir, ["stdout", "tensorboard"])
     # Construct the filepath for the buffer	
     replay_buffer_file = re.sub(r'(_\d+_steps).zip', r'_replay_buffer\1.pkl', parsed_input_dict["model_restart_file"])
 
     model = getattr(sys.modules[__name__], parsed_input_dict["algorithm"]).load(parsed_input_dict["model_restart_file"], env=training_env)
     if parsed_input_dict["algorithm"] in ["DQN", "TD3"]:
-        if isfile(replay_buffer_file):
+        if os.path.isfile(replay_buffer_file):
             model.load_replay_buffer(replay_buffer_file)
         print(f"The loaded model has {model.replay_buffer.size()} transitions in its buffer")
 else:
@@ -215,8 +240,8 @@ loggerdir = logger.get_dir()
 print("loggerdir = " + loggerdir)
 Path(loggerdir).mkdir(parents=True, exist_ok=True)
 
-with open(join(loggerdir,'case_args.json'), 'w') as jsonfile:
-    print("writing case arguments to " + join(loggerdir, 'case_args.json'))
+with open(os.path.join(loggerdir,'case_args.json'), 'w') as jsonfile:
+    print("writing case arguments to " + os.path.join(loggerdir, 'case_args.json'))
     json.dump(input_dict, jsonfile)
     jsonfile.close()
 
@@ -236,9 +261,10 @@ eval_callback = EvalCallback(
         **parsed_input_dict["eval_callback_kwargs"]
     )
 # Since np.savez doesn't have the functionality to append to existing numpy archives, we move the old evaluations.npz if it exists
-previous_npz_archives_dir = join(loggerdir, "previous_archives")
+previous_npz_archives_dir = os.path.join(loggerdir, "previous_archives")
 Path(previous_npz_archives_dir).mkdir(parents=True, exist_ok=True)
-system(f'mv --backup=numbered {loggerdir}/evaluations.npz {previous_npz_archives_dir}')
+# system(f'mv --backup=numbered {loggerdir}/evaluations.npz {previous_npz_archives_dir}')
+ordered_archive(os.path.join(loggerdir,"evaluations.npz"), previous_npz_archives_dir)
 
 checkpoint_callback = CheckpointCallback(
         save_path=loggerdir,
@@ -251,5 +277,7 @@ checkpoint_callback = CheckpointCallback(
 callback_list = CallbackList([eval_callback, checkpoint_callback])
 model.learn(total_timesteps=int(parsed_input_dict["total_timesteps"]), callback=callback_list, reset_num_timesteps=False)
 # Move evaluations.npz to previous_npz_archives_dir
-system(f'mv --backup=numbered {loggerdir}/evaluations.npz {previous_npz_archives_dir}')
+# system(f'mv --backup=numbered {loggerdir}/evaluations.npz {previous_npz_archives_dir}')
+ordered_archive(os.path.join(loggerdir,"evaluations.npz"), previous_npz_archives_dir)
+
 print("learning finished")
