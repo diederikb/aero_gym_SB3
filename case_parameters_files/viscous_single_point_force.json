@@ -10,10 +10,12 @@
     "model_restart_dir": null,
     "h_ddot_generator": "constant(0)",
     "reference_lift_generator": "constant(0)",
-    "training_sys_reinit_commands": "/Users/beckers/unsteady_aero_RL/aero_gym_SB3/julia_sys_reinit_commands_files/julia_system_with_one_random_force_pulse.jl",
-    "eval_sys_reinit_commands": "/Users/beckers/unsteady_aero_RL/aero_gym_SB3/julia_sys_reinit_commands_files/julia_system_with_one_prescribed_force_pulse.jl",
+    "training_sys_reinit_commands": "julia_sys_reinit_commands_files/julia_system_with_one_random_force_pulse.jl",
+    "eval_sys_reinit_commands": "julia_sys_reinit_commands_files/julia_system_with_one_prescribed_force_pulse.jl",
     "env_kwargs":
         {
+            "Re": 200,
+            "grid_Re": 4,
             "delta_t": 0.03,
             "t_max": 3.0,
             "xlim": [-1.25, 1.5],

@@ -23,6 +23,6 @@ my_params["sigma_1"] = 0.05
 my_params["sigma_2"] = 0.05
 my_params["t0_1"] = 0.5
 my_params["t0_2"] = 1.0
-my_params["CFL"] = 0.25 # Because the default timestep_func does not account for point forcing in the flow
+my_params["CFL"] = 0.5
 
 sys = viscousflow_system(g,body,phys_params=my_params,bc=bcdict,motions=m,reference_body=1,forcing=forcingdict);

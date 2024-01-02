@@ -3,7 +3,7 @@
 x0 = -0.74 + 0.02 * rand(Float64)
 y0 = -0.05 + 0.1 * rand(Float64)
 amp = -1.0 + 2.0 *rand(Float64)
-force_dist = [EmptySpatialField(),SpatialGaussian(σx,σy,x0,y0,amp)];
+force_dist = [EmptySpatialField(),SpatialGaussian(1/sqrt(2)*σx,1/sqrt(2)*σy,x0,y0,amp)];
 
 function forcing_model!(σ,T,t,fr::AreaRegionCache,phys_params)
     σt = my_params["sigma_1"]
