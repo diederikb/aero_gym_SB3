@@ -1,0 +1,69 @@
+{
+    "root_dir": null,
+    "env": "viscous_flow-v0",
+    "case_name": null,
+    "algorithm": "TD3",
+    "policy": "MlpPolicy",
+    "total_timesteps": 1e5,
+    "stacked_frames": 4,
+    "model_restart_file": null,
+    "model_restart_dir": null,
+    "h_ddot_generator": "constant(0)",
+    "reference_lift_generator": "constant(0)",
+    "training_sys_reinit_commands": "julia_sys_reinit_commands_files/julia_system_with_one_random_force_pulse_close.jl",
+    "eval_sys_reinit_commands": "julia_sys_reinit_commands_files/julia_system_with_one_prescribed_force_pulse_close.jl",
+    "env_kwargs":
+        {
+            "Re": 200,
+            "grid_Re": 4,
+            "delta_t": 0.03,
+            "t_max": 3.0,
+            "xlim": [-1.0, 1.5],
+            "ylim": [-0.5, 0.5],
+            "initialization_time": 5.0,
+            "alpha_init": 0.0,
+            "use_discrete_actions": false,
+            "num_discrete_actions": 9,
+            "reward_type": 4,
+            "observe_vorticity_field": false,
+            "observe_h_ddot": false,
+            "observe_h_dot": false,
+            "observe_previous_lift": true,
+            "observe_previous_lift_error": false,
+            "observe_previous_pressure": false,
+            "lift_scale": 0.1,
+            "lift_upper_limit": 0.6,
+            "lift_lower_limit": -0.6,
+            "alpha_upper_limit": 1.0471975511965976,
+            "alpha_lower_limit": -1.0471975511965976,
+            "alpha_termination": true,
+            "alpha_dot_limit": 1.8,
+            "alpha_dot_termination": true,
+            "h_dot_limit": 1,
+            "h_dot_termination": true,
+            "lift_termination": true,
+            "alpha_ddot_scale": 8.0,
+            "h_ddot_scale": 0.05,
+            "pressure_sensor_positions": [-0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3]
+        },
+    "training_algorithm_kwargs":
+        {
+            "stats_window_size": 10,
+            "verbose": 1,
+            "batch_size": 256,
+            "buffer_size": 1000000,
+            "learning_starts": 10000,
+            "gamma": 0.98,
+            "action_noise": "NormalActionNoise(mean=np.zeros(1,dtype=np.float32),sigma=0.1*np.ones(1,dtype=np.float32))",
+            "train_freq": "(1,\"episode\")"
+        },
+    "eval_callback_kwargs":
+        {
+            "n_eval_episodes": 1,
+            "eval_freq": 1000
+        },
+    "checkpoint_callback_kwargs":
+        {
+            "save_freq": 10000
+        }
+}
