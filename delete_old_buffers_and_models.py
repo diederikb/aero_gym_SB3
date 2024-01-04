@@ -16,13 +16,11 @@ def find_and_delete_files(directory):
 
         if match_pkl:
             number = int(match_pkl.group(1))
-            if number % 10000 == 0:
-                files_dict_pkl[number] = filename
+            files_dict_pkl[number] = filename
 
         elif match_zip:
             number = int(match_zip.group(1))
-            if number % 10000 == 0:
-                files_dict_zip[number] = filename
+            files_dict_zip[number] = filename
 
     # Determine the file with the highest value for NUMBER for pkl files
     if files_dict_pkl:
@@ -31,6 +29,7 @@ def find_and_delete_files(directory):
         print(f"PKL File to keep: {file_to_keep_pkl}")
     else:
         print("No matching pkl files found.")
+        sys.exit(1)
 
     # Determine the file with the highest value for NUMBER for zip files
     if files_dict_zip:
@@ -39,6 +38,7 @@ def find_and_delete_files(directory):
         print(f"ZIP File to keep: {file_to_keep_zip}")
     else:
         print("No matching zip files found.")
+        sys.exit(1)
 
     # Ask the user for confirmation
     confirmation = input("Do you want to delete all other files? (yes/no): ").lower()
