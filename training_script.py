@@ -146,10 +146,10 @@ Path(case_dir).mkdir(parents=True, exist_ok=True)
 # Create the evaluation and training environment using a wrapper around a base environment such that the same PyJulia is used. Note that if we apply the options to only one env, they will be overwritten in the other one
 # Ideally, we would have two truly separate environments, but PyJulia prevents us from efficiently running multiple Julia processes
 base_training_env = gym.make("aero_gym/" + parsed_input_dict["env"], **parsed_input_dict["env_kwargs"])
-# if parsed_input_dict["env"] == "wagner-v0":
-#     base_eval_env = gym.make("aero_gym/" + parsed_input_dict["env"], **parsed_input_dict["env_kwargs"])
-# else:
-base_eval_env = base_training_env
+if parsed_input_dict["env"] == "wagner-v0":
+    base_eval_env = gym.make("aero_gym/" + parsed_input_dict["env"], **parsed_input_dict["env_kwargs"])
+else:
+    base_eval_env = base_training_env
 
 training_reset_dict = {
         "h_ddot_generator": eval(parsed_input_dict["training_h_ddot_generator"]),
