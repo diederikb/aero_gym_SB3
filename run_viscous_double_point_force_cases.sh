@@ -6,42 +6,42 @@
 #$ -j n
 #$ -l gpu,V100,h_rt=24:00:00
 
-# move all old job logs to oldjoblogs
-source_directory=$(pwd)
-destination_directory=oldjoblogs
-mkdir -p "$destination_directory"
-find "$source_directory" -type f -name "joblog.*" -not -name "joblog.$JOB_ID" -exec mv {} "$destination_directory" \;
-find "$source_directory" -type f -name "joberr.*" -not -name "joberr.$JOB_ID" -exec mv {} "$destination_directory" \;
-
 # load modules and activate conda environment
-. /u/local/Modules/default/init/modules.sh
+# . /u/local/Modules/default/init/modules.sh
 
-module load gcc/11.3.0
-module load julia/1.9
-module load python
-module load cuda
-export NSLOTS=12
-source ~/unsteady_aero_RL/gymnasium_28/env_gymnasium_28/bin/activate
+# module load gcc/11.3.0
+# module load julia/1.9
+# module load python
+# module load cuda
+# export NSLOTS=12
+source ~/unsteady_aero_RL/.venv/bin/activate
 
 logdir=logs_viscous_double_point_force
 mkdir -p $logdir
 # number of times each case is run
-num_runs=10
+num_runs=1
 
-case_file=case_parameters_files/viscous_double_point_force_high_amplitude.json
-results_dir=/u/home/b/beckers/project-sofia/unsteady_aero_RL/results/viscous_double_point_force_high_amplitude
+case_file=case_parameters_files/viscous_double_point_force.json
+results_dir=/Users/beckers/unsteady_aero_RL/results/viscous_double_point_force
 
 case_1_id=1
 case_2_id=2
+case_3_id=3
+case_4_id=4
+case_5_id=5
 
 declare -a arguments_list=(
     # Point forcing
-    # "${case_file} --root_dir=${results_dir} --case_name=no_wake_info_4 --model_restart_dir=${results_dir}/TD3_no_wake_info_4/TD3_${case_1_id}"
+    # "${case_file} --root_dir=${results_dir} --case_name=no_wake_info_4 --reward_type 5 --model_restart_dir=${results_dir}/TD3_no_wake_info_4/TD3_${case_1_id}"
     # "${case_file} --root_dir=${results_dir} --case_name=pressure_info_3_4 --observe_previous_pressure --pressure_sensor_positions -0.3 0.0 0.3 --model_restart_dir=${results_dir}/TD3_pressure_info_3_4/TD3_${case_1_id}"
-    "${case_file} --root_dir=${results_dir} --case_name=pressure_info_7_4 --observe_previous_pressure --pressure_sensor_positions -0.3 -0.2 -0.1 0.0 0.1 0.2 0.3 --model_restart_dir=${results_dir}/TD3_pressure_info_7_4/TD3_${case_1_id}"
+    # "${case_file} --root_dir=${results_dir} --case_name=pressure_info_7_5 --reward_type 5 --observe_previous_pressure --pressure_sensor_positions -0.3 -0.2 -0.1 0.0 0.1 0.2 0.3 --model_restart_dir=${results_dir}/TD3_pressure_info_7_5/TD3_${case_1_id}"
+    # "${case_file} --root_dir=${results_dir} --case_name=pressure_info_7_5 --reward_type 5 --observe_previous_pressure --pressure_sensor_positions -0.3 -0.2 -0.1 0.0 0.1 0.2 0.3 --model_restart_dir=${results_dir}/TD3_pressure_info_7_5/TD3_${case_2_id}"
+    "${case_file} --total_timesteps 20000 --root_dir=${results_dir} --case_name=pressure_info_7_5 --reward_type 5 --observe_previous_pressure --pressure_sensor_positions -0.3 -0.2 -0.1 0.0 0.1 0.2 0.3 --model_restart_dir=${results_dir}/TD3_pressure_info_7_5/TD3_${case_3_id}"
+    # "${case_file} --root_dir=${results_dir} --case_name=pressure_info_7_5 --reward_type 5 --observe_previous_pressure --pressure_sensor_positions -0.3 -0.2 -0.1 0.0 0.1 0.2 0.3 --model_restart_dir=${results_dir}/TD3_pressure_info_7_5/TD3_${case_4_id}"
+    # "${case_file} --root_dir=${results_dir} --case_name=pressure_info_7_5 --reward_type 5 --observe_previous_pressure --pressure_sensor_positions -0.3 -0.2 -0.1 0.0 0.1 0.2 0.3 --model_restart_dir=${results_dir}/TD3_pressure_info_7_5/TD3_${case_5_id}"
     # "${case_file} --root_dir=${results_dir} --case_name=no_wake_info_4 --model_restart_dir=${results_dir}/TD3_no_wake_info_4/TD3_${case_2_id}"
     # "${case_file} --root_dir=${results_dir} --case_name=pressure_info_3_4 --observe_previous_pressure --pressure_sensor_positions -0.3 0.0 0.3 --model_restart_dir=${results_dir}/TD3_pressure_info_3_4/TD3_${case_2_id}"
-    "${case_file} --root_dir=${results_dir} --case_name=pressure_info_7_4 --observe_previous_pressure --pressure_sensor_positions -0.3 -0.2 -0.1 0.0 0.1 0.2 0.3 --model_restart_dir=${results_dir}/TD3_pressure_info_7_4/TD3_${case_2_id}"
+    # "${case_file} --root_dir=${results_dir} --case_name=pressure_info_7_4 --observe_previous_pressure --pressure_sensor_positions -0.3 -0.2 -0.1 0.0 0.1 0.2 0.3 --model_restart_dir=${results_dir}/TD3_pressure_info_7_4/TD3_${case_2_id}"
 )
 
 for (( i_run = 1; i_run <= $num_runs; i_run++ ))
@@ -53,9 +53,9 @@ do
         logfile=${case_name}_run_${i_run}_${date_stamp}.txt
         echo $logfile
         python training_script.py $arguments > $logdir/$logfile 2>&1 &
+        sleep 5
     done
 
-    sleep 30
     wait
     echo "Batch $i_run out of $num_runs done"
 done
