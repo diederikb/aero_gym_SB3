@@ -86,7 +86,7 @@ Create a function that takes an AeroGym environment and generates a numpy array 
 def random_d_steps_ramps(n_events_max=20, max_int_amplitude=1.0, max_d_amplitude=1.0):
     def random_d_steps_ramps_generator(env):
     
-        t = np.linspace(0, env.t_max, int(env.t_max / env.delta_t) + 1)
+        t = np.linspace(0, env.t_max, int(env.t_max / env.delta_t) + 2)
 
         # generate list of at most n_event_max list indices where the events take place
         n_events = env.np_random.integers(0, high=n_events_max, endpoint=True)
@@ -97,7 +97,7 @@ def random_d_steps_ramps(n_events_max=20, max_int_amplitude=1.0, max_d_amplitude
         upper_limit_event = max_int_amplitude
 
         generated_array = np.zeros(len(t))
-        d_generated_array = np.zeros(len(t))
+        d_generated_array = np.zeros(len(t) - 1)
 
         for i in range(len(start_index_list)):
 
