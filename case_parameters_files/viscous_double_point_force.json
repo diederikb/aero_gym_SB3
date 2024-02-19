@@ -4,7 +4,7 @@
     "case_name": null,
     "algorithm": "TD3",
     "policy": "MlpPolicy",
-    "total_timesteps": 1e5,
+    "total_timesteps": 5e5,
     "stacked_frames": 4,
     "model_restart_file": null,
     "model_restart_dir": null,
@@ -24,6 +24,7 @@
             "num_discrete_actions": 9,
             "reward_type": 4,
             "observe_vorticity_field": false,
+            "observe_alpha_ddot": false,
             "observe_h_ddot": false,
             "observe_h_dot": false,
             "observe_previous_lift": true,
@@ -48,7 +49,7 @@
         },
     "training_algorithm_kwargs":
         {
-            "stats_window_size": 10,
+            "stats_window_size": 1,
             "verbose": 1,
             "batch_size": 256,
             "buffer_size": 1000000,
