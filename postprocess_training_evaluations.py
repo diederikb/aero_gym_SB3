@@ -7,6 +7,8 @@ def moving_average(x, w):
 
 parser = argparse.ArgumentParser()
 parser.add_argument("parent_dir", type=str, help="parent directory of cases")
+parser.add_argument("--archive_prefix", type=str, help="prefix for npz archive file name", default="")
+parser.add_argument("--archive_dir", type=str, help="directory within parent_dir/run where evaluations are saved", default="archive")
 args = parser.parse_args()
 
 diritems = os.listdir(args.parent_dir)
@@ -20,18 +22,24 @@ timesteps_list = []
 min_length = float('inf')  # Initialize with positive infinity
 
 for run in [item for item in diritems if os.path.isdir(os.path.join(args.parent_dir, item))]:
-    archives_path = os.path.join(args.parent_dir, run, "previous_archives")
+    archives_path = os.path.join(args.parent_dir, run, args.archive_dir)
     merged_data = {}
     encountered_timesteps = set()
 
+    # Continue to next iteration if data is empty
+    if not os.path.isdir(archives_path):
+        print(f"no evaluations available for {run}")
+        continue
+
     for archive in os.listdir(archives_path):
-        archive_path = os.path.join(args.parent_dir, run, "previous_archives", archive)
-        data = np.load(archive_path)
-        for k, v in data.items():
-            if k in merged_data.keys():
-                merged_data[k] = np.append(merged_data[k], v)
-            else:
-                merged_data[k] = v
+        if archive.startswith(args.archive_prefix):
+            archive_path = os.path.join(args.parent_dir, run, args.archive_dir, archive)
+            data = np.load(archive_path)
+            for k, v in data.items():
+                if k in merged_data.keys():
+                    merged_data[k] = np.append(merged_data[k], v)
+                else:
+                    merged_data[k] = v
 
     # Continue to next iteration if data is empty
     if not merged_data:
@@ -115,21 +123,21 @@ upper_eval_mean_reward = mean_eval_mean_reward + std_eval_mean_reward
 case_name = os.path.basename(os.path.normpath(args.parent_dir))
 
 np.savetxt(
-    os.path.join(args.parent_dir, case_name + "_eval_mean_reward_mean.txt"),
+    os.path.join(args.parent_dir, args.archive_prefix + case_name + "_eval_mean_reward_mean.txt"),
     np.c_[
         timesteps_list[0][window_size - 1:],
         mean_eval_mean_reward,
     ]
 )
 np.savetxt(
-    os.path.join(args.parent_dir, case_name + "_eval_mean_reward_mean_plus_std.txt"),
+    os.path.join(args.parent_dir, args.archive_prefix + case_name + "_eval_mean_reward_mean_plus_std.txt"),
     np.c_[
         timesteps_list[0][window_size - 1:],
         upper_eval_mean_reward
     ]
 )
 np.savetxt(
-    os.path.join(args.parent_dir, case_name + "_eval_mean_reward_mean_minus_std.txt"),
+    os.path.join(args.parent_dir, args.archive_prefix + case_name + "_eval_mean_reward_mean_minus_std.txt"),
     np.c_[
         timesteps_list[0][window_size - 1:],
         lower_eval_mean_reward,
