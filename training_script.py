@@ -95,12 +95,12 @@ checkpoint_callback = CheckpointCallback(
         save_freq=1000,
     )
 
-# Save model every eval_freq steps for restart purposes
+# Save model every save_freq steps for restart purposes
 checkpoint_with_buffer_callback = CheckpointCallback(
         save_path=loggerdir,
         name_prefix="rl_model",
         save_replay_buffer=True,
-        **parsed_input_dict["checkpoint_callback_kwargs"]
+        save_freq=parsed_input_dict["save_freq"]
     )
 
 callback_list = CallbackList([checkpoint_callback, checkpoint_with_buffer_callback])

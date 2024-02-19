@@ -10,6 +10,7 @@
     "model_restart_dir": null,
     "n_eval_episodes": 1,
     "eval_freq": 1000,
+    "save_freq": 10000,
     "env_kwargs":
         {
             "Re": 200,
@@ -57,9 +58,5 @@
             "gamma": 0.98,
             "action_noise": "NormalActionNoise(mean=np.zeros(1,dtype=np.float32),sigma=0.1*np.ones(1,dtype=np.float32))",
             "train_freq": "(1,\"episode\")"
-        },
-    "checkpoint_callback_kwargs":
-        {
-            "save_freq": 10000
         }
 }

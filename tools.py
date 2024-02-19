@@ -36,7 +36,8 @@ def create_wrapped_aerogym_env(env_name, env_kwargs, stacked_frames, monitor_fil
     env = DummyVecEnv([lambda: env]) # type: ignore[list-item, return-value]
     env = VecFrameStack(env, stacked_frames)
 
-    if env_kwargs["observe_vorticity_field"]:
-        env = VecTransposeImage(env)
+    if "observe_vorticity_field" in env_kwargs:
+        if env_kwargs["observe_vorticity_field"]:
+            env = VecTransposeImage(env)
 
     return env

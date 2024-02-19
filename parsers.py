@@ -13,7 +13,6 @@ def parse_training_args(cli_args, general_input_as_dict={}, env_input_as_dict={}
     cli_parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
     cli_env_parser = argparse.ArgumentParser(parents=[cli_parser], add_help=False, argument_default=argparse.SUPPRESS)
 
-    cli_parser.add_argument("--input_file", type=str, help="json file with case parameters")
     add_general_cli_args(cli_parser)
     add_training_cli_args(cli_parser)
     add_wrapper_cli_args(cli_parser)
@@ -54,12 +53,19 @@ def parse_training_args(cli_args, general_input_as_dict={}, env_input_as_dict={}
     general_defaults = {
             "model_restart_dir": None,
             "model_restart_file": None,
+            "save_freq": 1000000,
         }
-    env_defaults = {
+    if "viscous_flow" in input_dict["env"]:
+        env_defaults = {
             "h_ddot_generator": "constant(0)",
             "reference_lift_generator": "constant(0)",
             "sys_reinit_commands": None,
             "observe_vorticity_field": False
+        }
+    else:
+        env_defaults = {
+            "h_ddot_generator": "constant(0)",
+            "reference_lift_generator": "constant(0)",
         }
     for k, v in general_defaults.items():
         if k not in input_dict:
@@ -84,7 +90,6 @@ def parse_eval_args(cli_args, general_input_as_dict={}, env_input_as_dict={}):
     cli_parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
     cli_env_parser = argparse.ArgumentParser(parents=[cli_parser], add_help=False, argument_default=argparse.SUPPRESS)
 
-    cli_parser.add_argument("--input_file", type=str, help="json file with case parameters")
     add_general_cli_args(cli_parser)
     add_eval_cli_args(cli_parser)
     add_wrapper_cli_args(cli_parser)
@@ -128,11 +133,17 @@ def parse_eval_args(cli_args, general_input_as_dict={}, env_input_as_dict={}):
             "start_at": 0,
             "end_at": np.inf,
         }
-    env_defaults = {
+    if "viscous_flow" in input_dict["env"]:
+        env_defaults = {
             "h_ddot_generator": "constant(0)",
             "reference_lift_generator": "constant(0)",
             "sys_reinit_commands": None,
             "observe_vorticity_field": False
+        }
+    else:
+        env_defaults = {
+            "h_ddot_generator": "constant(0)",
+            "reference_lift_generator": "constant(0)",
         }
     for k, v in general_defaults.items():
         if k not in input_dict:
@@ -153,6 +164,7 @@ def add_general_cli_args(parser):
     """
     Add CLI arguments that can always be used.
     """
+    parser.add_argument("--input_file", type=str, help="json file with case parameters")
     parser.add_argument(
         '-d', '--debug',
         help="Print lots of debugging statements",
@@ -181,6 +193,7 @@ def add_training_cli_args(parser):
     parser.add_argument("--policy", type=str, help="the policy model to use")
     parser.add_argument("--net_arch", type=int, nargs='*', help="network layer sizes")
     parser.add_argument("--total_timesteps", type=int, help="total training timesteps")
+    parser.add_argument("--save_freq", type=int, help="save model and buffer at timestep multiples of this value (for restart)")
     parser.add_argument("--model_restart_file", type=str, help="if specified, load this model and restart the training")
     parser.add_argument("--model_restart_dir", type=str, help="if specified, load the latest model in this directory and restart the training, or, if there is no saved model, start a new one")
 
