@@ -1,15 +1,12 @@
 import sys
 import os
 from pathlib import Path
-import gymnasium as gym
-import aero_gym
 import numpy as np
 from stable_baselines3 import DQN, TD3, PPO, SAC
-from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack, VecTransposeImage
-from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.evaluation import evaluate_policy
 from parsers import parse_eval_args
 from typing import List
+from tools import create_wrapped_aerogym_env
 
 def find_model_files(parsed_input_dict):
     files = os.listdir(parsed_input_dict["eval_dir"])
@@ -20,6 +17,7 @@ def find_model_files(parsed_input_dict):
         and filename.endswith("_steps.zip") \
         and int(filename.split("_")[2]) % parsed_input_dict["eval_freq"] == 0 \
         and int(filename.split("_")[2]) >= parsed_input_dict["start_at"]
+        and int(filename.split("_")[2]) <= parsed_input_dict["end_at"]
     ]
 
     # Sort files based on the extracted steps
@@ -48,7 +46,7 @@ def find_best_reward(best_mean_reward_file_path):
         best_mean_reward = -np.inf
     return best_mean_reward
 
-parsed_input_dict, raw_input_dict = parse_eval_args()
+parsed_input_dict, raw_input_dict = parse_eval_args(sys.argv[1:])
 
 print(parsed_input_dict)
 
@@ -89,21 +87,7 @@ print(f"Evaluation file path: {evaluation_path}", flush=True)
 
 model_files = find_model_files(parsed_input_dict)
 
-# Create AeroGym environment
-env = gym.make(
-    "aero_gym/" + parsed_input_dict["env"],
-    **parsed_input_dict["env_kwargs"],
-)
-
-# Wrapping environment in a Monitor wrapper so we can monitor the rollout episode rewards and lengths
-env = Monitor(env)
-# Wrapping environment in a DummyVecEnv such that we can apply a VecFrameStack wrapper (because the gymnasium FrameStack wrapper doesn't work with Dict observations)
-env = DummyVecEnv([lambda: env])
-env = VecFrameStack(env, parsed_input_dict["stacked_frames"])
-
-if "observe_vorticity_field" in parsed_input_dict["env_kwargs"].keys():
-    if parsed_input_dict["env_kwargs"]["observe_vorticity_field"] == True:
-        env = VecTransposeImage(env)
+env = create_wrapped_aerogym_env(parsed_input_dict["env"], parsed_input_dict["env_kwargs"], parsed_input_dict["stacked_frames"])
 
 print("observation_space:")
 print(env.observation_space)

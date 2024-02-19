@@ -1,35 +1,53 @@
 # parsers.py
 
 import argparse
+import logging
 import json
 import numpy as np
 from copy import deepcopy
 from stable_baselines3.common.noise import NormalActionNoise
 from trajectory_generators import *
 
-def parse_training_args():
+def parse_training_args(cli_args, general_input_as_dict={}, env_input_as_dict={}):
     # Use command-line input to get the input file and to overwrite any settings in the input file
     cli_parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
     cli_env_parser = argparse.ArgumentParser(parents=[cli_parser], add_help=False, argument_default=argparse.SUPPRESS)
 
-    cli_parser.add_argument("input_file", type=str, help="json file with case parameters")
+    cli_parser.add_argument("--input_file", type=str, help="json file with case parameters")
+    add_general_cli_args(cli_parser)
     add_training_cli_args(cli_parser)
     add_wrapper_cli_args(cli_parser)
     add_env_cli_args(cli_env_parser)
 
-    cli_general_args, unknown_args = cli_parser.parse_known_args()
+    cli_general_args, unknown_args = cli_parser.parse_known_args(cli_args)
     cli_env_args = cli_env_parser.parse_args(unknown_args)
+    logging.basicConfig(level=cli_general_args.loglevel)
 
     # Create dicts from arguments
     cli_general_dict = vars(cli_general_args)
     cli_env_dict = vars(cli_env_args)
 
-    with open(cli_general_args.input_file) as jf:
-        input_dict = json.load(jf)
-        input_dict.update(cli_general_dict)
+    # Assemble input_dict in this order:
+    # - first parse input json file (if it exists)
+    # - overwrite with cli_args
+    # - overwrite with general_input_as_dict
+    input_dict = {}
+    if "input_file" in cli_general_dict.keys():
+        with open(cli_general_args.input_file) as jf:
+            input_file_dict = json.load(jf)
+            input_dict.update(input_file_dict)
+    input_dict.update(cli_general_dict)
+    input_dict.update(general_input_as_dict)
 
-    input_env_dict = deepcopy(input_dict["env_kwargs"])
+    # Assemble input_dict["env_kwargs"] in this order:
+    # - first use "env_kwargs" from input json file (if it exists)
+    # - overwrite with cli_args
+    # - overwrite with env_input_as_dict
+    input_env_dict = {}
+    if "env_kwargs" in input_dict:
+        input_env_dict = deepcopy(input_dict["env_kwargs"])
     input_env_dict.update(cli_env_dict)
+    input_env_dict.update(env_input_as_dict)
     input_dict["env_kwargs"] = input_env_dict
 
     # Create defaults for some keys if they are not present in parsed_input_dict
@@ -41,6 +59,7 @@ def parse_training_args():
             "h_ddot_generator": "constant(0)",
             "reference_lift_generator": "constant(0)",
             "sys_reinit_commands": None,
+            "observe_vorticity_field": False
         }
     for k, v in general_defaults.items():
         if k not in input_dict:
@@ -60,29 +79,46 @@ def parse_training_args():
 
     return parsed_input_dict, input_dict
 
-def parse_eval_args():
+def parse_eval_args(cli_args, general_input_as_dict={}, env_input_as_dict={}):
     # Use command-line input to get the input file and to overwrite any settings in the input file
     cli_parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
     cli_env_parser = argparse.ArgumentParser(parents=[cli_parser], add_help=False, argument_default=argparse.SUPPRESS)
 
-    cli_parser.add_argument("input_file", type=str, help="json file with case parameters")
+    cli_parser.add_argument("--input_file", type=str, help="json file with case parameters")
+    add_general_cli_args(cli_parser)
     add_eval_cli_args(cli_parser)
     add_wrapper_cli_args(cli_parser)
     add_env_cli_args(cli_env_parser)
 
-    cli_general_args, unknown_args = cli_parser.parse_known_args()
+    cli_general_args, unknown_args = cli_parser.parse_known_args(cli_args)
     cli_env_args = cli_env_parser.parse_args(unknown_args)
+    logging.basicConfig(level=cli_general_args.loglevel)
 
     # Create dicts from arguments
     cli_general_dict = vars(cli_general_args)
     cli_env_dict = vars(cli_env_args)
 
-    with open(cli_general_args.input_file) as jf:
-        input_dict = json.load(jf)
-        input_dict.update(cli_general_dict)
+    # Assemble input_dict in this order:
+    # - first parse input json file (if it exists)
+    # - overwrite with cli_args
+    # - overwrite with general_input_as_dict
+    input_dict = {}
+    if "input_file" in cli_general_dict.keys():
+        with open(cli_general_args.input_file) as jf:
+            input_file_dict = json.load(jf)
+            input_dict.update(input_file_dict)
+    input_dict.update(cli_general_dict)
+    input_dict.update(general_input_as_dict)
 
-    input_env_dict = deepcopy(input_dict["env_kwargs"])
+    # Assemble input_dict["env_kwargs"] in this order:
+    # - first use "env_kwargs" from input json file (if it exists)
+    # - overwrite with cli_args
+    # - overwrite with env_input_as_dict
+    input_env_dict = {}
+    if "env_kwargs" in input_dict:
+        input_env_dict = deepcopy(input_dict["env_kwargs"])
     input_env_dict.update(cli_env_dict)
+    input_env_dict.update(env_input_as_dict)
     input_dict["env_kwargs"] = input_env_dict
 
     # Create defaults for some keys if they are not present in parsed_input_dict
@@ -90,11 +126,13 @@ def parse_eval_args():
             "archive_dir": "archive",
             "archive_prefix": "",
             "start_at": 0,
+            "end_at": np.inf,
         }
     env_defaults = {
             "h_ddot_generator": "constant(0)",
             "reference_lift_generator": "constant(0)",
             "sys_reinit_commands": None,
+            "observe_vorticity_field": False
         }
     for k, v in general_defaults.items():
         if k not in input_dict:
@@ -110,6 +148,22 @@ def parse_eval_args():
             parsed_input_dict["env_kwargs"][k] = eval(input_dict["env_kwargs"][k])
 
     return parsed_input_dict, input_dict
+
+def add_general_cli_args(parser):
+    """
+    Add CLI arguments that can always be used.
+    """
+    parser.add_argument(
+        '-d', '--debug',
+        help="Print lots of debugging statements",
+        action="store_const", dest="loglevel", const=logging.DEBUG,
+        default=logging.WARNING,
+    )
+    parser.add_argument(
+        '-v', '--verbose',
+        help="Be verbose",
+        action="store_const", dest="loglevel", const=logging.INFO,
+    )
 
 def add_wrapper_cli_args(parser):
     """
@@ -140,7 +194,8 @@ def add_eval_cli_args(parser):
     parser.add_argument("--algorithm", type=str, help="learning algorithm")
     parser.add_argument("--eval_freq", type=int, help="if specified, only evaluate at timestep multiples of this value")
     parser.add_argument("--n_eval_episodes", type=int, help="if specified, only evaluate at timestep multiples of this value")
-    parser.add_argument("--start_at", type=int, help="only evaluate models with timesteps starting from this value")
+    parser.add_argument("--start_at", type=int, help="only evaluate models with timesteps higher or equal to this value")
+    parser.add_argument("--end_at", type=int, help="only evaluate models with timesteps below or equal to this value")
     parser.add_argument("--archive_to_overwrite", type=str, help="if specified, overwrite values in this archive")
 
 def add_env_cli_args(parser):
@@ -159,6 +214,7 @@ def add_env_cli_args(parser):
     parser.add_argument('--observe_previous_wake', action='store_true')
     parser.add_argument('--observe_alpha', action='store_true')
     parser.add_argument('--observe_alpha_dot', action='store_true')
+    parser.add_argument('--observe_alpha_ddot', action='store_true')
     parser.add_argument('--observe_h_ddot', action='store_true')
     parser.add_argument('--observe_h_dot', action='store_true')
     parser.add_argument('--observe_alpha_eff', action='store_true')

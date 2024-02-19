@@ -10,11 +10,12 @@ from stable_baselines3.common.utils import configure_logger
 from stable_baselines3.common.logger import configure
 from stable_baselines3.common.monitor import Monitor
 from parsers import parse_training_args
+from tools import create_wrapped_aerogym_env
 from pathlib import Path
 import re
 import os
 
-parsed_input_dict, raw_input_dict = parse_training_args()
+parsed_input_dict, raw_input_dict = parse_training_args(sys.argv[1:])
 
 print(parsed_input_dict)
 
@@ -22,21 +23,7 @@ print(parsed_input_dict)
 case_dir = os.path.join(parsed_input_dict["root_dir"], parsed_input_dict["algorithm"] + "_" + parsed_input_dict["case_name"])
 Path(case_dir).mkdir(parents=True, exist_ok=True)
 
-# Create AeroGym environment
-env = gym.make(
-    "aero_gym/" + parsed_input_dict["env"],
-    **parsed_input_dict["env_kwargs"],
-)
-
-# Wrapping environment in a Monitor wrapper so we can monitor the rollout episode rewards and lengths
-env = Monitor(env)
-# Wrapping environment in a DummyVecEnv such that we can apply a VecFrameStack wrapper (because the gymnasium FrameStack wrapper doesn't work with Dict observations)
-env = DummyVecEnv([lambda: env])
-env = VecFrameStack(env, parsed_input_dict["stacked_frames"])
-
-if "observe_vorticity_field" in parsed_input_dict["env_kwargs"].keys():
-    if parsed_input_dict["env_kwargs"]["observe_vorticity_field"] == True:
-        env = VecTransposeImage(env)
+env = create_wrapped_aerogym_env(parsed_input_dict["env"], parsed_input_dict["env_kwargs"], parsed_input_dict["stacked_frames"])
 
 print("observation_space:")
 print(env.observation_space)
