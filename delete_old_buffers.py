@@ -47,11 +47,17 @@ def find_and_delete_buffers(directory):
 
 if __name__ == "__main__":
     # Check if the target directory is provided as a command line argument
-    if len(sys.argv) != 2:
-        print("Usage: python script.py /path/to/your/target/directory")
+    if len(sys.argv) < 2:
+        print("Usage: python delete_old_buffers.py /path/to/your/target/directory")
         sys.exit(1)
 
-    target_directory = sys.argv[1]
+    # Use glob to expand wildcard * in the directory path
+    directories = sys.argv[1:]
 
-    # Call the function
-    find_and_delete_buffers(target_directory)
+    if not directories:
+        print(f"No directories found for: {directories}")
+        sys.exit(1)
+
+    for directory in directories:
+        # Call the function for each directory
+        find_and_delete_buffers(directory)
