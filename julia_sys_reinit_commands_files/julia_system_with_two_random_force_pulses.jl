@@ -27,7 +27,7 @@ end
 
 afm_1 = AreaForcingModel(forcing_model_1!,spatialfield=force_dist_1)
 afm_2 = AreaForcingModel(forcing_model_2!,spatialfield=force_dist_2)
-forcingdict = Dict("forcing models" => [afm_1, afm_2]);
+forcingdict = Dict("forcing models" => AbstractForcingModel[afm_1, afm_2]);
 
 my_params["sigma_1"] = 0.01 + 0.09 * rand(Float64)
 my_params["sigma_2"] = 0.01 + 0.09 * rand(Float64)
