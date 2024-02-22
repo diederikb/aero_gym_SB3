@@ -48,5 +48,9 @@
         {
             "n_eval_episodes": 1,
             "eval_freq": 1000
+        },
+    "checkpoint_callback_kwargs":
+        {
+            "save_freq": 1000000
         }
 }

@@ -6,8 +6,8 @@
     "policy": "MlpPolicy",
     "total_timesteps": 1e6,
     "stacked_frames": 2,
-    "training_h_ddot_generator": "random_d_steps_ramps(max_int_amplitude=0.01, max_d_amplitude=0.01)",
-    "eval_h_ddot_generator": "random_d_steps_ramps(max_int_amplitude=0.01, max_d_amplitude=0.01)",
+    "training_h_ddot_generator": "random_d_steps_ramps(max_int_amplitude=0.01, max_d_amplitude=0.007)",
+    "eval_h_ddot_generator": "random_d_steps_ramps(max_int_amplitude=0.01, max_d_amplitude=0.007)",
     "env_kwargs":
         {
             "delta_t": 0.1,
@@ -45,6 +45,7 @@
         },
     "checkpoint_callback_kwargs":
         {
-            "save_freq": 100000
+            "save_freq": 1000,
+            "save_replay_buffer": false
         }
 }

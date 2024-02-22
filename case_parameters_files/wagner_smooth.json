@@ -4,10 +4,10 @@
     "case_name": null,
     "algorithm": "TD3",
     "policy": "MlpPolicy",
-    "total_timesteps": 2e6,
+    "total_timesteps": 1e6,
     "stacked_frames": 2,
-    "training_h_ddot_generator": "random_fourier_series(max_amplitude=0.02, T=40, min_mode=5, max_mode=50)",
-    "eval_h_ddot_generator": "random_fourier_series(max_amplitude=0.02, T=40, min_mode=5, max_mode=50)",
+    "training_h_ddot_generator": "random_fourier_series(max_amplitude=0.01, T=40, min_mode=5, max_mode=50)",
+    "eval_h_ddot_generator": "random_fourier_series(max_amplitude=0.01, T=40, min_mode=5, max_mode=50)",
     "env_kwargs":
         {
             "delta_t": 0.1,
@@ -42,5 +42,10 @@
         {
             "n_eval_episodes": 20,
             "eval_freq": 1000
+        },
+    "checkpoint_callback_kwargs":
+        {
+            "save_freq": 1000,
+            "save_replay_buffer": false
         }
 }
