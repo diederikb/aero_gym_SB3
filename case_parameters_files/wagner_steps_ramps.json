@@ -8,6 +8,8 @@
     "stacked_frames": 2,
     "training_h_ddot_generator": "random_d_steps_ramps(max_int_amplitude=0.01, max_d_amplitude=0.007)",
     "eval_h_ddot_generator": "random_d_steps_ramps(max_int_amplitude=0.01, max_d_amplitude=0.007)",
+    "n_eval_episodes": 10,
+    "eval_freq": 1000,
     "env_kwargs":
         {
             "delta_t": 0.1,
@@ -37,11 +39,6 @@
             "gamma": 0.98,
             "action_noise": "NormalActionNoise(mean=np.zeros(1,dtype=np.float32),sigma=0.1*np.ones(1,dtype=np.float32))",
             "train_freq": "(1,\"episode\")"
-        },
-    "eval_callback_kwargs":
-        {
-            "n_eval_episodes": 20,
-            "eval_freq": 1000
         },
     "checkpoint_callback_kwargs":
         {

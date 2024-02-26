@@ -4,7 +4,7 @@
 #$ -o joblog.$JOB_ID
 #$ -e joberr.$JOB_ID
 #$ -j n
-#$ -l gpu,V100,h_rt=24:00:00
+#$ -l gpu,RTX2080Ti,h_rt=24:00:00
 
 # move all old job logs to oldjoblogs
 source_directory=$(pwd)
@@ -30,8 +30,8 @@ mkdir -p $logdir
 # number of times each case is run
 num_runs=2
 
-case_file=case_parameters_files/wagner.json
-results_dir=/u/home/b/beckers/project-sofia/unsteady_aero_RL/results/wagner_mixed_training_impulse_evaluation_reward_2
+case_file=case_parameters_files/wagner_steps_ramps.json
+results_dir=/u/home/b/beckers/project-sofia/unsteady_aero_RL/results/wagner_impulsive_training_impulsive_evaluation_reward_3
 
 declare -a arguments_list=(
     # "wagner TD3 full_wake_1 --t_max=20 --delta_t=0.1 --observe_previous_lift --observe_previous_wake --observe_previous_alpha_eff --stacked_frames 1 --lift_scale=0.01 --alpha_ddot_scale=0.1 --h_ddot_scale=0.01 --h_ddot_generator=random_steps_ramps()"
@@ -53,12 +53,12 @@ declare -a arguments_list=(
     # "${case_file} --root_dir=${results_dir} --case_name=only_lift_info_1_3_64_64 --stacked_frames=1 --reward_type=3 --net_arch 64 64"
     # "${case_file} --root_dir=${results_dir} --case_name=only_lift_info_1_3_128_128 --stacked_frames=1 --reward_type=3 --net_arch 128 128"
 
-    "${case_file} --root_dir=${results_dir} --case_name=angular_info_1_9 --stacked_frames=1 --observe_alpha --observe_alpha_dot --reward_type=9"
-    "${case_file} --root_dir=${results_dir} --case_name=angular_info_2_9 --stacked_frames=2 --observe_alpha --observe_alpha_dot --reward_type=9"
-    "${case_file} --root_dir=${results_dir} --case_name=pressure_info_1_9 --stacked_frames=1 --observe_alpha --observe_alpha_dot --observe_previous_pressure --reward_type=9"
-    "${case_file} --root_dir=${results_dir} --case_name=pressure_info_2_9 --stacked_frames=2 --observe_alpha --observe_alpha_dot --observe_previous_pressure --reward_type=9"
-    "${case_file} --root_dir=${results_dir} --case_name=full_wake_info_1_9 --stacked_frames=1 --observe_alpha --observe_alpha_dot --observe_previous_alpha_eff --observe_previous_wake --reward_type=9"
-    "${case_file} --root_dir=${results_dir} --case_name=full_wake_info_2_9 --stacked_frames=2 --observe_alpha --observe_alpha_dot --observe_previous_alpha_eff --observe_previous_wake --reward_type=9"
+    "${case_file} --root_dir=${results_dir} --case_name=no_wake_info_1_3 --stacked_frames=1 --observe_alpha --observe_alpha_dot --reward_type=3"
+    "${case_file} --root_dir=${results_dir} --case_name=no_wake_info_2_3 --stacked_frames=2 --observe_alpha --observe_alpha_dot --reward_type=3"
+    "${case_file} --root_dir=${results_dir} --case_name=pressure_info_1_3 --stacked_frames=1 --observe_alpha --observe_alpha_dot --observe_previous_pressure --reward_type=3"
+    "${case_file} --root_dir=${results_dir} --case_name=pressure_info_2_3 --stacked_frames=2 --observe_alpha --observe_alpha_dot --observe_previous_pressure --reward_type=3"
+    "${case_file} --root_dir=${results_dir} --case_name=full_wake_info_1_3 --stacked_frames=1 --observe_alpha --observe_alpha_dot --observe_previous_alpha_eff --observe_previous_wake --reward_type=3"
+    "${case_file} --root_dir=${results_dir} --case_name=full_wake_info_2_3 --stacked_frames=2 --observe_alpha --observe_alpha_dot --observe_previous_alpha_eff --observe_previous_wake --reward_type=3"
 
     # "${case_parameters_dir}/wagner_steps_ramps.json --root_dir=${results_dir}/wagner_steps_ramps_001 --case_name=pressure_info_1 --stacked_frames=1 --observe_previous_lift --observe_previous_pressure"
     # "${case_parameters_dir}/wagner_steps_ramps.json --root_dir=${results_dir}/wagner_steps_ramps_001 --case_name=full_wake_info_1 --stacked_frames=1 --observe_previous_lift --observe_previous_alpha_eff --observe_previous_wake"
