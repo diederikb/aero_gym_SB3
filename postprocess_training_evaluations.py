@@ -9,6 +9,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("parent_dir", type=str, help="parent directory of cases")
 parser.add_argument("--archive_prefix", type=str, help="prefix for npz archive file name", default="")
 parser.add_argument("--archive_dir", type=str, help="directory within parent_dir/run where evaluations are saved", default="archive")
+parser.add_argument("--eval_freq", type=int, help="only postprocess timestep values that are multiples of this value", default=1)
 args = parser.parse_args()
 
 diritems = os.listdir(args.parent_dir)
@@ -77,7 +78,7 @@ for run in [item for item in diritems if os.path.isdir(os.path.join(args.parent_
     for timestep, mean_reward, std_reward, mean_ep_length, std_ep_length in zip(
         eval_timesteps, eval_mean_reward, eval_std_reward, eval_mean_ep_length, eval_std_ep_length
     ):
-        if timestep not in encountered_timesteps:
+        if (timestep not in encountered_timesteps) and (timestep % args.eval_freq == 0):
             unique_timesteps.append(timestep)
             unique_eval_mean_reward.append(mean_reward)
             unique_eval_std_reward.append(std_reward)
@@ -117,7 +118,7 @@ mean_eval_mean_reward = np.mean(mean_reward_array, 0)
 std_eval_mean_reward = np.std(mean_reward_array, 0)
 
 # Take moving average
-window_size = 20
+window_size = 10
 print("taking moving average with window size " + str(window_size))
 mean_eval_mean_reward = moving_average(mean_eval_mean_reward, window_size)
 std_eval_mean_reward = moving_average(std_eval_mean_reward, window_size)

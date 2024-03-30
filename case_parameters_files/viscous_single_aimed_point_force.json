@@ -4,7 +4,7 @@
     "case_name": null,
     "algorithm": "TD3",
     "policy": "MlpPolicy",
-    "total_timesteps": 3e5,
+    "total_timesteps": 5e5,
     "stacked_frames": 4,
     "model_restart_file": null,
     "model_restart_dir": null,

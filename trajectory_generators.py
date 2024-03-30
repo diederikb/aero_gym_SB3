@@ -73,6 +73,14 @@ def impulse(value, t_impulse=0.0):
         return generated_array
     return impulse_generator
 
+def summed_events(*args):
+    def summed_events_generator(env):
+        generated_array = np.zeros(int(env.t_max / env.delta_t) + 1)
+        for event in args:
+            generated_array += event(env)
+        return generated_array
+    return summed_events_generator
+
 def random_mixed_events(*args):
     def random_mixed_events_generator(env):
         event_type = env.np_random.integers(len(args), endpoint=False)
