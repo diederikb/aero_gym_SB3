@@ -56,4 +56,4 @@ afm_1 = AreaForcingModel(forcing_model_1!,spatialfield=force_dist_1)
 afm_2 = AreaForcingModel(forcing_model_2!,spatialfield=force_dist_2)
 forcingdict = Dict("forcing models" => AbstractForcingModel[afm_1, afm_2]);
 
-sys = viscousflow_system(g,body,phys_params=my_params,bc=bcdict,motions=m,reference_body=1,forcing=forcingdict);
+sys = viscousflow_system(g,bl,phys_params=my_params,bc=bcdict,motions=m,reference_body=1,forcing=forcingdict);

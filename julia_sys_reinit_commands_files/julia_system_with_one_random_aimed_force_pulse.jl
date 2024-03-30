@@ -28,4 +28,4 @@ my_params["t0_1"] = 0.5
 afm = AreaForcingModel(forcing_model!,spatialfield=force_dist)
 forcingdict = Dict("forcing models" => afm);
 
-sys = viscousflow_system(g,body,phys_params=my_params,bc=bcdict,motions=m,reference_body=1,forcing=forcingdict);
+sys = viscousflow_system(g,bl,phys_params=my_params,bc=bcdict,motions=m,reference_body=1,forcing=forcingdict);
